@@ -23,6 +23,7 @@ sources:
     - rtl/obi_xbar_slave.sv
     - rtl/obi_xbar_slave_param.sv
     - rtl/obi_xbar_testing_module.sv
+    - rtl/mapped2obi.sv
     
     - target: sim
       files:
