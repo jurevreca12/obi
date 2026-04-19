@@ -4,10 +4,13 @@ package:
         - "Kristjan <kristjan@email.si>"
 
 sources:
+    - rtl/obi_pkg.sv
     - rtl/lf_lfsr_prng.sv
     - rtl/fifo.sv
     - rtl/obi_a_decoder.sv
     - rtl/obi_aid_generator.sv
+    - rtl/obi_a_if.sv
+    - rtl/obi_r_if.sv
     - rtl/obi_crossbar.sv
     - rtl/obi-gpio.sv
     - rtl/obi_link_selector.sv

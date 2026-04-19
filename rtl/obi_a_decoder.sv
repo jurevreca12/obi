@@ -20,7 +20,6 @@ module obi_a_decoder #(
 );
     localparam int SEL_WIDTH = $clog2(SUBORDINATES);
 
-    assign dbg = (address_maps_i[1].base & address_maps_i[1].mask) == (req_address_i & address_maps_i[1].mask);
 
     always_comb begin
         obi_a_sel_o = default_sel_en_i ? default_sel_i : '1; // Default obi_a_sel_o signal value

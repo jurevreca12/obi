@@ -3,8 +3,14 @@ import obi_pkg::obi_r;
 
 // OBI slave module
 module obi_xbar_slave_param #( // TODO rename module to xbar slave
+    parameter int ADDR_WIDTH = 32,
+    parameter int DATA_WIDTH = 32,
+    parameter int ID_WIDTH = 4,
+    parameter int MANAGERS = 4,
+    parameter int SUBORDINATES = 2,
     parameter int MANAGERS_CONS = 2, // No. of managers connected to slave
-    parameter int FIFO_DEPTH = 8
+    parameter int FIFO_DEPTH = 8,
+    localparam int NBytes = (DATA_WIDTH / 8)
 )
 (
     input   logic clk_i,

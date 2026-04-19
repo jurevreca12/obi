@@ -1,5 +1,5 @@
-import soc_defines::obi_a;
-import soc_defines::obi_r;
+import obi_pkg::obi_a;
+import obi_pkg::obi_r;
 
 module obi_xbar_testing_param_module #(
     
