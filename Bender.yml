@@ -1,0 +1,27 @@
+package:
+    name: obi
+    authors:
+        - "Kristjan"
+
+sources:
+    - rtl/lf_lfsr_prng.sv
+    - rtl/fifo.sv
+    - rtl/obi_a_decoder.sv
+    - rtl/obi_aid_generator.sv
+    - rtl/obi_crossbar.sv
+    - rtl/obi-gpio.sv
+    - rtl/obi_link_selector.sv
+    - rtl/obi_link_selector_param.sv
+    - rtl/obi_manager.sv
+    - rtl/obi_manager_param.sv
+    - rtl/obi_r_decoder.sv
+    - rtl/obi-timer.sv
+    - rtl/obi-uart.sv
+    - rtl/obi_xbar_slave.sv
+    - rtl/obi_xbar_slave_param.sv
+    - rtl/obi_xbar_testing_module.sv
+    
+    - target: sim
+    files:
+        - tb/obi_xbar_testing_param_module.sv
+        - tb/testing_xbar_param.sv
