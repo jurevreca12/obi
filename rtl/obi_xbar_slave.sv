@@ -1,9 +1,6 @@
 import soc_defines::obi_a;
 import soc_defines::obi_r;
 
-`include "../../fifo/rtl/fifo"
-`include "../../lf-lfsr-prng/rtl/lf_lfsr_prng"
-
 // OBI slave module
 module obi_xbar_slave #( // TODO rename module to xbar slave
     parameter int MANAGERS_CONS = 2, // No. of managers connected to slave

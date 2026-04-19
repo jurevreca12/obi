@@ -1,8 +1,6 @@
 import soc_defines::obi_a;
 import soc_defines::obi_r;
 
-`include "../../obi-slave/rtl/obi_xbar_slave.sv"
-
 // OBI crossbar
 module obi_crossbar #(
     

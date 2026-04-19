@@ -1,4 +1,3 @@
-`include "../fifo/rtl/fifo.sv"
 
 `define UART_CONF_OFF 7'h00
 `define UART_SPEED_OFF 7'h04

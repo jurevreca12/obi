@@ -1,11 +1,6 @@
 import soc_defines::obi_a;
 import soc_defines::obi_r;
 
-`include "../../obi-slave/rtl/obi_xbar_slave_param.sv"
-`include "../../sv-includes/obi_r_if.sv"
-`include "../../sv-includes/obi_a_if.sv"
-
-
 // OBI crossbar
 module testing_xbar_param #(
     parameter int ADDR_WIDTH = 32,

@@ -1,10 +1,6 @@
 import soc_defines::obi_a;
 import soc_defines::obi_r;
 
-`include "testing_xbar_param.sv"
-`include "../../sv-includes/obi_r_if.sv"
-`include "../../sv-includes/obi_a_if.sv"
-
 module obi_xbar_testing_param_module #(
     
 )

@@ -1,3 +1,4 @@
+package obi_pkg;
     
     parameter int ADDR_WIDTH = 32;
     parameter int DATA_WIDTH = 32;
@@ -5,17 +6,6 @@
     parameter int MANAGERS = 4;
     parameter int ID_WIDTH = 32;
     parameter int SUBORDINATES = 2;
-    
-
-    /*
-    localparam int ADDR_WIDTH = 32;
-    localparam int DATA_WIDTH = 32;
-    localparam int NBytes = DATA_WIDTH / 8;
-    localparam int MANAGERS = 4;
-    localparam int ID_WIDTH = 32;
-    localparam int SUBORDINATES = 2;
-    */
-package soc_defines;
 
 
     typedef struct packed{

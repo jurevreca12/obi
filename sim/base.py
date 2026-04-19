@@ -1,38 +1,26 @@
 import os
-import glob
+import subprocess
+import json
 from pathlib import Path
 from cocotb_tools.runner import get_runner
 
-RTL_DIRS = (
-    "/foss/designs/rvj1-SoC/soc/sv-includes",  # needs to be before others
-    "/foss/designs/rvj1-SoC/soc/obi-uart/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-r-decoder/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-aid-generator/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-a-decoder/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-link-selector/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-manager/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-crossbar/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-crossbar/test/"
-)
 LANGUAGE = os.getenv("HDL_TOPLEVEL_LANG", "verilog").lower().strip()
 WAVES = os.getenv("WAVES", default=False)
 RVFI = os.getenv("RVFI", default=True)
 RVFI_TRACE = os.getenv("RVFI_TRACE", default=False)
 ASSERTIONS = os.getenv("ASSERTIONS", default=True)
 
-def get_rtl_files(lang):
+def get_rtl_files():
     rtl_files = []
-    if lang == "verilog":
-        for rootdir in RTL_DIRS:
-            rtl_files += list(glob.glob(f"{rootdir}/**/*.v", recursive=True))
-            rtl_files += list(glob.glob(f"{rootdir}/**/*.sv", recursive=True))
-    else:
-        raise NotImplementedError
-
-    # Remove duplicates, while preserving order (defines must be first)
-    rtl_files = list(map(lambda x: Path(x), rtl_files))
-    seen = set()
-    rtl_files = [x for x in rtl_files if not (x in seen or seen.add(x))]
+    sources = subprocess.run(
+        "bender sources -t sim --flatten",
+        capture_output=True,
+        shell=True
+    )
+    sources = json.loads(sources.stdout)
+    for src_pkg in sources:
+        for file in src_pkg['files']:
+            rtl_files.append(Path(file))
     return rtl_files
 
 
@@ -49,17 +37,8 @@ def get_test_runner(hdl_top):
         build_args += [f"-DASSERTIONS"]
     runner = get_runner(sim)
     runner.build(
-        sources=get_rtl_files(LANGUAGE),
-        includes=["/foss/designs/rvj1-SoC/soc/sv-includes",  # needs to be before others
-    "/foss/designs/rvj1-SoC/soc/fifo/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-uart/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-r-decoder/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-aid-generator/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-a-decoder/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-link-selector/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-manager/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-crossbar/rtl/",
-    "/foss/designs/rvj1-SoC/soc/obi-crossbar/test/"],
+        sources=get_rtl_files(),
+        includes=["/foss/designs/obi/inc"],
         build_args=build_args,
         hdl_toplevel=hdl_top,
         always=True,

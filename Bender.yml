@@ -1,7 +1,7 @@
 package:
     name: obi
     authors:
-        - "Kristjan"
+        - "Kristjan <kristjan@email.si>"
 
 sources:
     - rtl/lf_lfsr_prng.sv
@@ -22,6 +22,6 @@ sources:
     - rtl/obi_xbar_testing_module.sv
     
     - target: sim
-    files:
+      files:
         - tb/obi_xbar_testing_param_module.sv
         - tb/testing_xbar_param.sv

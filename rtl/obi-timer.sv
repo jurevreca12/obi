@@ -5,7 +5,7 @@
 `define TIMER_COUNTH_OFF 7'h08
 
 
-module obi_gpio #(
+module obi_timer #(
     parameter OBI_ADDR_WIDTH = 32,
     parameter OBI_DATA_WIDTH = 32
 
