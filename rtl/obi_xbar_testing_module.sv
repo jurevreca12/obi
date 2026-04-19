@@ -1,5 +1,5 @@
-import soc_defines::obi_a;
-import soc_defines::obi_r;
+import obi_pkg::obi_a;
+import obi_pkg::obi_r;
 
 //`include "obi_crossbar"
 
@@ -152,8 +152,8 @@ parameter int NBytes = DATA_WIDTH / 8;
 
     /*
     // OBI UART
-    //soc_defines::obi_manager_2_sub  uart_a_obii;
-    soc_defines::obi_a uart_a_obii;
+    //obi_pkg::obi_manager_2_sub  uart_a_obii;
+    obi_pkg::obi_a uart_a_obii;
     assign obi_11_aaddr_o = uart_a_obii.obi_aadr;
     assign obi_11_awdata_o = uart_a_obii.obi_awdata;
     assign obi_11_abe_o = uart_a_obii.obi_abe;
@@ -164,8 +164,8 @@ parameter int NBytes = DATA_WIDTH / 8;
     logic  uart_agnt_obio;
     assign uart_agnt_obio = obi_11_agnt_i;
        
-    //soc_defines::obi_sub_2_manager  uart_r_obio;
-    soc_defines::obi_r uart_r_obio;
+    //obi_pkg::obi_sub_2_manager  uart_r_obio;
+    obi_pkg::obi_r uart_r_obio;
     assign uart_r_obio.obi_rdata = obi_11_rdata_i;
     assign uart_r_obio.obi_rerr = obi_11_rerr_i;
     assign uart_r_obio.obi_rid = obi_11_rid_i ;
@@ -175,8 +175,8 @@ parameter int NBytes = DATA_WIDTH / 8;
 
     // OBI RAM
 
-    //soc_defines::obi_sub_2_manager  rama_r_obio; // TODO could change name to fit better (ram_a_obio_i)
-    soc_defines::obi_r rama_r_obio;
+    //obi_pkg::obi_sub_2_manager  rama_r_obio; // TODO could change name to fit better (ram_a_obio_i)
+    obi_pkg::obi_r rama_r_obio;
     assign rama_r_obio.obi_rdata = obi_00_rdata_i;
     assign rama_r_obio.obi_rerr = obi_00_rerr_i;
     assign rama_r_obio.obi_rid = obi_00_rid_i;
@@ -184,8 +184,8 @@ parameter int NBytes = DATA_WIDTH / 8;
     logic  rama_rready_obio;
     assign obi_00_rready_o = rama_rready_obio; 
 
-    //soc_defines::obi_manager_2_sub  rama_a_obii;
-    soc_defines::obi_a rama_a_obii;
+    //obi_pkg::obi_manager_2_sub  rama_a_obii;
+    obi_pkg::obi_a rama_a_obii;
     assign obi_00_aaddr_o = rama_a_obii.obi_aadr;
     assign obi_00_awdata_o = rama_a_obii.obi_awdata;
     assign obi_00_abe_o = rama_a_obii.obi_abe;
@@ -197,8 +197,8 @@ parameter int NBytes = DATA_WIDTH / 8;
     assign rama_agnt_obii = obi_00_agnt_i;
     
     
-    //soc_defines::obi_sub_2_manager  ramb_r_obio;
-    soc_defines::obi_r ramb_r_obio;
+    //obi_pkg::obi_sub_2_manager  ramb_r_obio;
+    obi_pkg::obi_r ramb_r_obio;
     assign ramb_r_obio.obi_rdata = obi_10_rdata_i;
     assign ramb_r_obio.obi_rerr = obi_10_rerr_i;
     assign ramb_r_obio.obi_rid = obi_10_rid_i;
@@ -207,8 +207,8 @@ parameter int NBytes = DATA_WIDTH / 8;
     assign obi_10_rready_o = ramb_rready_obio;
    
 
-    //soc_defines::obi_manager_2_sub  ramb_a_obii;
-    soc_defines::obi_a ramb_a_obii;
+    //obi_pkg::obi_manager_2_sub  ramb_a_obii;
+    obi_pkg::obi_a ramb_a_obii;
     assign obi_10_aaddr_o = ramb_a_obii.obi_aadr;
     assign obi_10_awdata_o = ramb_a_obii.obi_awdata;
     assign obi_10_abe_o = ramb_a_obii.obi_abe;

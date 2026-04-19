@@ -1,5 +1,5 @@
-import soc_defines::obi_a;
-import soc_defines::obi_r;
+import obi_pkg::obi_a;
+import obi_pkg::obi_r;
 
 // OBI crossbar
 module obi_crossbar #(
@@ -60,27 +60,27 @@ module obi_crossbar #(
 /*
 // OBI UART
     // Request channel
-    output soc_defines::obi_a uart_a_obii_o,
+    output obi_pkg::obi_a uart_a_obii_o,
     input logic uart_agnt_obio_i,
 
     // Response channel
-    input soc_defines::obi_r uart_r_obio_i,
+    input obi_pkg::obi_r uart_r_obio_i,
     output logic uart_rready_obii_o,   
 // OBI RAM
     // Response channel
-    input soc_defines::obi_r rama_r_obio_i,
+    input obi_pkg::obi_r rama_r_obio_i,
     output logic rama_rready_obii_o,
     
     // Request channel
-    output soc_defines::obi_a rama_a_obii_o,
+    output obi_pkg::obi_a rama_a_obii_o,
     input logic rama_agnt_obio_i,
 
     // Response channel
-    input soc_defines::obi_r ramb_r_obio_i,
+    input obi_pkg::obi_r ramb_r_obio_i,
     output logic ramb_rready_obii_o,
 
     // Request channel
-    output soc_defines::obi_a ramb_a_obii_o,
+    output obi_pkg::obi_a ramb_a_obii_o,
     input logic ramb_agnt_obio_i,
 */
 
@@ -121,8 +121,8 @@ module obi_crossbar #(
     localparam int NBytes = DATA_WIDTH / 8;
 
 // OBI IFU manager
-    soc_defines::obi_a obi_a_m0o [SUBORDINATES];   // DMUX data signal outputs (IFU a channel signals)
-    soc_defines::obi_r obi_r_m0i [SUBORDINATES];   // MUX data signal inputs (IFU r channel signals)
+    obi_pkg::obi_a obi_a_m0o [SUBORDINATES];   // DMUX data signal outputs (IFU a channel signals)
+    obi_pkg::obi_r obi_r_m0i [SUBORDINATES];   // MUX data signal inputs (IFU r channel signals)
     logic obi_agnt_m0i_array [SUBORDINATES]; 
     logic obi_rready_m0o_array [SUBORDINATES];
 obi_manager #(
@@ -156,8 +156,8 @@ obi_manager #(
 );
 
 // OBI LSU manager
-    soc_defines::obi_a obi_a_m1o [SUBORDINATES];   // DMUX data signal outputs (LSU a channel signals)
-    soc_defines::obi_r obi_r_m1i [SUBORDINATES];   // MUX data signal inputs (LSU r channel signals)
+    obi_pkg::obi_a obi_a_m1o [SUBORDINATES];   // DMUX data signal outputs (LSU a channel signals)
+    obi_pkg::obi_r obi_r_m1i [SUBORDINATES];   // MUX data signal inputs (LSU r channel signals)
     logic obi_agnt_m1i_array [SUBORDINATES];
     logic obi_rready_m1o_array [SUBORDINATES];
 obi_manager #(
@@ -193,8 +193,8 @@ obi_manager #(
 
 
 // OBI M2 manager
-    soc_defines::obi_a obi_a_m2o [SUBORDINATES];   // DMUX data signal outputs (LSU a channel signals)
-    soc_defines::obi_r obi_r_m2i [SUBORDINATES];   // MUX data signal inputs (LSU r channel signals)
+    obi_pkg::obi_a obi_a_m2o [SUBORDINATES];   // DMUX data signal outputs (LSU a channel signals)
+    obi_pkg::obi_r obi_r_m2i [SUBORDINATES];   // MUX data signal inputs (LSU r channel signals)
     logic obi_agnt_m2i_array [SUBORDINATES];
     logic obi_rready_m2o_array [SUBORDINATES];
 obi_manager #(
@@ -260,7 +260,7 @@ obi_manager #(
     localparam int S0_FIFO_DEPTH = 1024;
 
     // OBI A channels S0-Masters
-    soc_defines::obi_a s0_obi_a_channels [S0_MANAGERS_CONS];
+    obi_pkg::obi_a s0_obi_a_channels [S0_MANAGERS_CONS];
     logic s0_obi_agnt_array [S0_MANAGERS_CONS];
 
         assign s0_obi_a_channels[0] = obi_a_m0o[0];
@@ -270,7 +270,7 @@ obi_manager #(
         assign obi_agnt_m1i_array[0] = s0_obi_agnt_array[1];
 
     // OBI R channels S0-Masters
-    soc_defines::obi_r s0_obi_r_channels [S0_MANAGERS_CONS];
+    obi_pkg::obi_r s0_obi_r_channels [S0_MANAGERS_CONS];
     logic s0_obi_rready_array [S0_MANAGERS_CONS];
 
         assign obi_r_m0i[0] = s0_obi_r_channels[0];
@@ -311,7 +311,7 @@ obi_xbar_slave #(
     localparam int S1_FIFO_DEPTH = 1024;
 
     // OBI A channels S1-Masters
-    soc_defines::obi_a s1_obi_a_channels [S1_MANAGERS_CONS];
+    obi_pkg::obi_a s1_obi_a_channels [S1_MANAGERS_CONS];
     logic s1_obi_agnt_array [S1_MANAGERS_CONS];
 
         assign s1_obi_a_channels[0] = obi_a_m0o[1];
@@ -323,7 +323,7 @@ obi_xbar_slave #(
         assign obi_agnt_m2i_array[1] = s1_obi_agnt_array[2];
 
     // OBI R channels S1-Masters
-    soc_defines::obi_r s1_obi_r_channels [S1_MANAGERS_CONS];
+    obi_pkg::obi_r s1_obi_r_channels [S1_MANAGERS_CONS];
     logic s1_obi_rready_array [S1_MANAGERS_CONS];
 
         assign obi_r_m0i[1] = s1_obi_r_channels[0];

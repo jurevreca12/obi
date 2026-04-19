@@ -1,5 +1,5 @@
-import soc_defines::obi_a;
-import soc_defines::obi_r;
+import obi_pkg::obi_a;
+import obi_pkg::obi_r;
 
 // OBI slave module
 module obi_xbar_slave #( // TODO rename module to xbar slave
@@ -11,11 +11,11 @@ module obi_xbar_slave #( // TODO rename module to xbar slave
     input   logic rstn_i,
 
 // OBI A channels Slave<-Masters
-    input soc_defines::obi_a obi_a_channels_i [MANAGERS_CONS],
+    input obi_pkg::obi_a obi_a_channels_i [MANAGERS_CONS],
     output logic obi_agnt_array_o [MANAGERS_CONS],
 
 // OBI R channels Slave->Masters
-    output soc_defines::obi_r obi_r_channels_o [MANAGERS_CONS],
+    output obi_pkg::obi_r obi_r_channels_o [MANAGERS_CONS],
     input logic obi_rready_array_i [MANAGERS_CONS],
 
 // OBI XBAR Slave->OBI Slave
@@ -106,7 +106,7 @@ module obi_xbar_slave #( // TODO rename module to xbar slave
 // REQ FIFO
     // The REQ FIFO holds values of obi_aadr, obi_awdata, obi_abe, obi_awe signals from the granted request
     // These values are read by the OBI Slave
-    localparam int REQ_FIFO_WIDTH = ($bits(soc_defines::obi_a) - ID_FIFO_WIDTH -1);
+    localparam int REQ_FIFO_WIDTH = ($bits(obi_pkg::obi_a) - ID_FIFO_WIDTH -1);
 
     logic req_wr_en;
     logic req_rd_en;
@@ -138,7 +138,7 @@ module obi_xbar_slave #( // TODO rename module to xbar slave
 // RSP FIFO
     // The RSP FIFO holds values of obi_rdata, obi_rerr signals from the OBI Slave response
     // These values along with obi_rid are transmitted back to the manager
-    localparam int RSP_FIFO_WIDTH = ($bits(soc_defines::obi_r) - ID_WIDTH -1);
+    localparam int RSP_FIFO_WIDTH = ($bits(obi_pkg::obi_r) - ID_WIDTH -1);
 
     logic rsp_wr_en;
     logic rsp_rd_en;

@@ -1,4 +1,4 @@
-import soc_defines::addr_map;
+import obi_pkg::addr_map;
 
 // OBI A channel decoder
 module obi_a_decoder #(
@@ -9,7 +9,7 @@ module obi_a_decoder #(
 )
 (
     input   logic [ADDR_WIDTH-1:0]              req_address_i,
-    input   soc_defines::addr_map [NoMAPS-1:0]  address_maps_i, 
+    input   obi_pkg::addr_map [NoMAPS-1:0]  address_maps_i, 
     input   logic                               config_ready_i,     
     input   logic                               default_sel_en_i,
     input   logic [SEL_WIDTH-1:0]               default_sel_i,

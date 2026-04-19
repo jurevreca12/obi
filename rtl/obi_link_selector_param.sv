@@ -1,5 +1,5 @@
-import soc_defines::obi_a;
-import soc_defines::obi_r;
+import obi_pkg::obi_a;
+import obi_pkg::obi_r;
 
 // OBI link selector
 module obi_link_selector_param #(
@@ -8,18 +8,18 @@ module obi_link_selector_param #(
 )
 (
 // Manager-Selector OBI Link    
-    input soc_defines::obi_a obi_a_i,
+    input obi_pkg::obi_a obi_a_i,
     output logic obi_agnt_o,
 
-    output soc_defines::obi_r obi_r_o,
+    output obi_pkg::obi_r obi_r_o,
     input logic obi_rready_i,
 
 // OBI A channels Selector-Slaves
-    output soc_defines::obi_a [SUBORDINATES-1:0] obi_a_channels_o,
+    output obi_pkg::obi_a [SUBORDINATES-1:0] obi_a_channels_o,
     input logic [SUBORDINATES-1:0] obi_agnt_array_i,
 
 // OBI R channels Selector-Slaves
-    input soc_defines::obi_r [SUBORDINATES-1:0] obi_r_channels_i,
+    input obi_pkg::obi_r [SUBORDINATES-1:0] obi_r_channels_i,
     output logic [SUBORDINATES-1:0] obi_rready_array_o,
     
 

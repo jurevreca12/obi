@@ -1,6 +1,6 @@
-import soc_defines::obi_a;
-import soc_defines::obi_r;
-import soc_defines::addr_map;
+import obi_pkg::obi_a;
+import obi_pkg::obi_r;
+import obi_pkg::addr_map;
 
 // OBI manager
 module obi_manager #(
@@ -19,10 +19,10 @@ module obi_manager #(
 
 // OBI R channels Selector-Slaves
     output logic obi_rready_array_o [SUBORDINATES],
-    input soc_defines::obi_r obi_r_channels_i [SUBORDINATES],
+    input obi_pkg::obi_r obi_r_channels_i [SUBORDINATES],
 
 // OBI A channels Selector-Slaves
-    output soc_defines::obi_a obi_a_channels_o [SUBORDINATES],
+    output obi_pkg::obi_a obi_a_channels_o [SUBORDINATES],
     input logic obi_agnt_array_i [SUBORDINATES],
 
 // OBI A channel
@@ -46,7 +46,7 @@ module obi_manager #(
 );
 
 // OBI manager to subordinate signals
-    soc_defines::obi_a obi_a;
+    obi_pkg::obi_a obi_a;
 
     assign obi_a.obi_areq     =   obi_areq_i;
     assign obi_a.obi_aadr     =   obi_aadr_i;
@@ -56,7 +56,7 @@ module obi_manager #(
     assign obi_a.obi_mid      =   MANAGER_ID;
 
 // OBI subordinate to manager signals
-    soc_defines::obi_r obi_r;
+    obi_pkg::obi_r obi_r;
 
     assign obi_rdata_o          =   obi_r.obi_rdata;
     assign obi_rerr_o           =   obi_r.obi_rerr;
@@ -77,7 +77,7 @@ module obi_manager #(
 // R decoder
     // TODO propagate address_maps 
     logic address_map_err;
-    soc_defines::addr_map [1:0]  address_maps;
+    obi_pkg::addr_map [1:0]  address_maps;
     assign address_maps[0] = '{3'd0,32'h0000_0000,32'h4000_0000};
     assign address_maps[1] = '{3'd1,32'h4000_0000,32'h4000_0000};
 
