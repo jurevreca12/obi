@@ -1,5 +1,3 @@
-import sys
-sys.path.append('../../../soc_tb_lib')
 from base import get_test_runner, WAVES
 from memory_device import Memory_device, gen_memory_data
 import obi
@@ -308,73 +306,7 @@ class ObiXbarTB(BaseBench):
                 )
                 self.log.info(msg=f"Driving WRITE response on s0")
 
-    """
-    def drive_response_s1( # Drives the response transaction upon the monitor capture of the request transaction
-            self, monitor:obi.ObiRequestMonitor, event:MonitorEvent, obj:obi.ObiRequest
-    ):
-        self.log.info(msg=f"Captured request transaction on s1")
-        match obj.obi_awe: # Check if request was a READ or WRITE transaction
-            case obi.ObiAccess.READ:  # On READ, read data from address in mmio device
-                read = self.mmio_device.read(obj.obi_aadr)
-                err = 1 if read is None else 0
-                self.s1_obi_response_driver.enqueue(# Drive the read response transaction signals (data, error) 
-                    obi.ObiResponse(
-                        valid_delay=self.slave_delay_func(self),
-                        obi_rdata = read,
-                        obi_rerr=err,
-                        obi_rid=obj.obi_aid,
-                        obi_mid=obj.obi_mid
-                    )
-                )
-                self.log.info(msg=f"Driving READ response on s1")
-            case obi.ObiAccess.WRITE: # On WRITE, write the data to address in mmio device
-                err = self.mmio_device.write(obj.obi_aadr, obj.obi_awdata, obj.obi_abe)
-                self.s1_obi_response_driver.enqueue(# Drive the write response transaction signals (error)
-                    obi.ObiResponse(
-                        valid_delay=self.slave_delay_func(self),
-                        obi_rdata = 0,
-                        obi_rerr=err,
-                        obi_rid=obj.obi_aid,
-                        obi_mid=obj.obi_mid
-                    )
-                )
-                self.log.info(msg=f"Driving WRITE response on s1")
-    """
-
-    """         
-    def drive_response_s2( # Drives the response transaction upon the monitor capture of the request transaction
-            self, monitor:obi.ObiRequestMonitor, event:MonitorEvent, obj:obi.ObiRequest
-    ):
-        self.log.info(msg=f"Captured request transaction on s2")
-        match obj.obi_awe: # Check if request was a READ or WRITE transaction
-            case obi.ObiAccess.READ:  # On READ, read data from address in mmio device
-                read = self.mmio_device.read(obj.obi_aadr)
-                err = 1 if read is None else 0
-                self.s2_obi_response_driver.enqueue(# Drive the read response transaction signals (data, error) 
-                    obi.ObiResponse(
-                        valid_delay=self.slave_delay_func(self),
-                        obi_rdata = read,
-                        obi_rerr=err,
-                        obi_rid=obj.obi_aid,
-                        obi_mid=obj.obi_mid
-                    )
-                )
-                self.log.info(msg=f"Driving READ response on s2")
-            case obi.ObiAccess.WRITE: # On WRITE, write the data to address in mmio device
-                err = self.mmio_device.write(obj.obi_aadr, obj.obi_awdata, obj.obi_abe)
-                self.s2_obi_response_driver.enqueue(# Drive the write response transaction signals (error)
-                    obi.ObiResponse(
-                        valid_delay=self.slave_delay_func(self),
-                        obi_rdata = 0,
-                        obi_rerr=err,
-                        obi_rid=obj.obi_aid,
-                        obi_mid=obj.obi_mid
-                    )
-                )
-                self.log.info(msg=f"Driving WRITE response on s2")
     
-    """            
-
     # Backpressure drivers drive methods
      
     def drive_response_backpressure( # Drives the ready signal 
@@ -394,24 +326,6 @@ class ObiXbarTB(BaseBench):
                 cycles=1
             )
         )
-
-    """
-    def drive_response_backpressure_lsu( # Drives the ready signal LSU->M1
-            self, driver:obi.ObiResponseDriver, event:DriverEvent , obj:obi.ObiResponse
-    ):
-        self.lsu_mapped_response_backpressure_driver.enqueue(# Drives ready low for the specified duration of cycles
-            mapped.MappedBackpressure(
-                ready=0,
-                cycles=self.lsu_response_backpressure_func(self)
-            ) 
-        )
-        self.lsu_mapped_response_backpressure_driver.enqueue(# Drives ready high for 1 cycle to complete the transaction
-            mapped.MappedBackpressure(
-                ready=1,
-                cycles=1
-            )
-        )
-    """
         
     def drive_request_backpressure( # Drives the agnt signal
             self, driver:mapped.MappedRequestInitiator, event:DriverEvent , obj:mapped.MappedRequest
@@ -431,42 +345,6 @@ class ObiXbarTB(BaseBench):
                 cycles=1
             )
         )
-
-    """
-    def drive_request_backpressure_s1( # Drives the agnt signal M1<-S1
-            self, driver:mapped.MappedRequestInitiator, event:DriverEvent , obj:mapped.MappedRequest
-    ):
-        self.log.info(msg=f"Driving s1 request backpressure")
-        self.s1_obi_request_backpressure_driver.enqueue(# Drives agnt low for the specified duration of cycles
-            obi.ObiBackpressure(
-                ready=0,
-                cycles=self.s1_request_backpressure_func(self)
-            ) 
-        )
-        self.s1_obi_request_backpressure_driver.enqueue(# Drives agnt high for 1 cycle to complete the transaction
-            obi.ObiBackpressure(
-                ready=1,
-                cycles=1
-            )
-        )
-
-    def drive_request_backpressure_s2( # Drives the agnt signal M1<-S1
-            self, driver:mapped.MappedRequestInitiator, event:DriverEvent , obj:mapped.MappedRequest
-    ):
-        self.s2_obi_request_backpressure_driver.enqueue(# Drives agnt low for the specified duration of cycles
-            obi.ObiBackpressure(
-                ready=0,
-                cycles=self.s2_request_backpressure_func(self)
-            ) 
-        )
-        self.s2_obi_request_backpressure_driver.enqueue(# Drives agnt high for 1 cycle to complete the transaction
-            obi.ObiBackpressure(
-                ready=1,
-                cycles=1
-            )
-        )
-
-    """
 
 # ---------- Monitor Filters ----------
 
@@ -510,21 +388,6 @@ class ObiXbarTB(BaseBench):
         }
         return decode_dict[mid]
     
-    """"
-    def lsu_request_decode(self, address: int) -> str:
-        lsu_decode_dict = {
-            0 : "1",
-            1 : "2"
-        }
-        range = int(math.ceil(math.log2(self.subordinates)))
-        binary = '{:032b}'.format(address)
-        #self.log.info(msg=f"address:" + str(address))
-        self.log.info(msg=f"address in binary:" + binary)
-        range_bin = binary[:range]
-        self.log.info(msg=f"int of range:" + str(int(range_bin, 2)))
-        return lsu_decode_dict[int(range_bin, 2)]
-    """
-
 # ---------- Backpressure methods ----------
 
     # Returns a constant value
@@ -635,36 +498,7 @@ async def linear_read_seq_bp(
                     strobe=strb
                 )
             )
-            #await request_monitor.wait_for(MonitorEvent.CAPTURE)
-        
-        
-        """
-        async with ctx.lock(request_monitor):
-            await request_monitor.wait_for(MonitorEvent.CAPTURE)
-
-        
-        async with ctx.lock(response_driver, request_backpressure_driver):
-            response_driver.wait_for(DriverEvent.POST_DRIVE)
-            request_backpressure_driver.wait_for(DriverEvent.POST_DRIVE)
-        
-
             
-            request_backpressure_driver.enqueue(# Drives agnt low for the specified duration of cycles
-                obi.ObiBackpressure(
-                    ready=0,
-                    cycles=backpressure_func(tb)
-                ) 
-            )
-            request_backpressure_driver.enqueue(# Drives agnt high for 1 cycle to complete the transaction
-                obi.ObiBackpressure(
-                    ready=1,
-                    cycles=1
-                ),
-                DriverEvent.POST_DRIVE
-            )
-            """
-            #await request_monitor.wait_for(MonitorEvent.CAPTURE)
-            #ctx.release(request_driver, request_backpressure_driver, request_monitor, response_driver, response_monitor, response_backpressure_driver)
 
 
 
@@ -701,21 +535,6 @@ async def random_read_seq_bp(
                     strobe=strb
                 )
             )
-            """
-            request_backpressure_driver.enqueue(# Drives agnt low for the specified duration of cycles
-                obi.ObiBackpressure(
-                    ready=0,
-                    cycles=backpressure_func(tb)
-                ) 
-            )
-            request_backpressure_driver.enqueue(# Drives agnt high for 1 cycle to complete the transaction
-                obi.ObiBackpressure(
-                    ready=1,
-                    cycles=1
-                ),
-                DriverEvent.POST_DRIVE
-            )
-            """
             await request_monitor.wait_for(MonitorEvent.CAPTURE)
 
 
@@ -756,21 +575,6 @@ async def random_write_seq(
                     strobe=strb
                 )
             )
-            """
-            request_backpressure_driver.enqueue(# Drives agnt low for the specified duration of cycles
-                obi.ObiBackpressure(
-                    ready=0,
-                    cycles=backpressure_func(tb)
-                ) 
-            )
-            request_backpressure_driver.enqueue(# Drives agnt high for 1 cycle to complete the transaction
-                obi.ObiBackpressure(
-                    ready=1,
-                    cycles=1
-                ),
-                DriverEvent.POST_DRIVE
-            )
-            """
             await request_monitor.wait_for(MonitorEvent.CAPTURE)
 
 
@@ -841,19 +645,29 @@ async def ifu_lsu_linear_read_test2_0(
     tb.mmio_device.flash(test_mem)
     address_sequence = tb.gen_linear_address_seq(start_address, range(0, (repeat*4), 4))
     m0 = tb.schedule(
-        linear_read_seq(
-            driver=tb.ifu_mapped_request_driver,
-            tb=tb,
-            addresses=address_sequence
+            linear_read_seq_bp(
+                request_driver=tb.ifu_mapped_request_driver,
+                request_backpressure_driver=tb.s0_obi_request_backpressure_driver,
+                request_monitor=tb.s0_obi_request_monitor,
+                response_driver=tb.s0_obi_response_driver,
+                response_backpressure_driver=tb.ifu_mapped_response_backpressure_driver,
+                strb=0,
+                tb=tb,
+                addresses=address_sequence
+            )
         )
-    )
     m1 = tb.schedule(
-        linear_read_seq(
-            driver=tb.lsu_mapped_request_driver,
-            tb=tb,
-            addresses=address_sequence
+            linear_read_seq_bp(
+                request_driver=tb.lsu_mapped_request_driver,
+                request_backpressure_driver=tb.s0_obi_request_backpressure_driver,
+                request_monitor=tb.s0_obi_request_monitor,
+                response_driver=tb.s0_obi_response_driver,
+                response_backpressure_driver=tb.lsu_mapped_response_backpressure_driver,
+                strb=1,
+                tb=tb,
+                addresses=address_sequence
+            )
         )
-    )
 
     await m0,m1
 
@@ -869,8 +683,6 @@ async def ifu_lsu_linear_read_bp_test2_1(
     test_mem = gen_memory_data(start_address, range(1, (repeat+1)))
     tb.mmio_device.flash(test_mem)
     address_sequence = tb.gen_linear_address_seq(start_address, range(0, (repeat*4), 4))
-    #adr2 = tb.gen_linear_address_seq(start_address, range(20, (repeat*4)*2, 4))
-
     
     tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
     tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
@@ -922,8 +734,6 @@ async def ifu_lsu_m2_linear_read_bp_test3_0(
     test_mem = gen_memory_data(start_address, range(1, (repeat+1)))
     tb.mmio_device.flash(test_mem)
     address_sequence = tb.gen_linear_address_seq(start_address, range(0, (repeat*4), 4))
-    #adr2 = tb.gen_linear_address_seq(start_address, range(20, (repeat*4)*2, 4))
-
     
     tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,10))
     tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,10))
@@ -987,11 +797,7 @@ async def ifu_lsu_m2_linear_read_bp_test3_1(
     transactions,
     repeat,
     start_address
-): 
-    
-    #adr2 = tb.gen_linear_address_seq(start_address, range(20, (repeat*4)*2, 4))
-
-    
+):     
     tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
     tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
     tb.m2_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
@@ -1048,14 +854,11 @@ async def ifu_lsu_m2_linear_read_bp_test3_1(
         transactions = int(transactions + (transactions/2))
         try:
             await ClockCycles(tb.clk, 100)
-            #await tb.m2_mapped_request_driver.idle()
-            #await tb.lsu_mapped_request_driver.idle()
-            #await tb.ifu_mapped_request_driver.idle()
+            
             await tb.scoreboard.drain()
             await ClockCycles(tb.clk, 500)
             await tb.scoreboard.drain()
             await ClockCycles(tb.clk, 500)
-            #transactions = transactions + 10
             await tb.reset()
         except Exception as e:
             tb._orch_log.error(f"Caught exception during reset: {e}")
@@ -1077,10 +880,6 @@ async def test4_0_3m_2s_r(
     start_address_s1
 
 ): 
-    
-    #adr2 = tb.gen_linear_address_seq(start_address, range(20, (repeat*4)*2, 4))
-
-    
     tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
     tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
     tb.m2_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
@@ -1142,14 +941,10 @@ async def test4_0_3m_2s_r(
         transactions = int(transactions + (transactions/2))
         try:
             await ClockCycles(tb.clk, 100)
-            #await tb.m2_mapped_request_driver.idle()
-            #await tb.lsu_mapped_request_driver.idle()
-            #await tb.ifu_mapped_request_driver.idle()
             await tb.scoreboard.drain()
             await ClockCycles(tb.clk, 500)
             await tb.scoreboard.drain()
             await ClockCycles(tb.clk, 500)
-            #transactions = transactions + 10
             await tb.reset()
         except Exception as e:
             tb._orch_log.error(f"Caught exception during reset: {e}")
@@ -1159,5 +954,4 @@ async def test4_0_3m_2s_r(
 
 
 if __name__ == "__main__":
-    sys.path.insert(0, '/foss/designs/rvj1-SoC/soc_tb_lib')
     test_obi_crossbar_runner()
