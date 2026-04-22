@@ -3,7 +3,6 @@
 module obi_r_decoder #(
     parameter int SUBORDINATES = 8,
     parameter int ID_WIDTH = 32
-    
 )
 (
     input   logic clk_i,
@@ -16,7 +15,6 @@ module obi_r_decoder #(
     localparam int MAX_VALUE = (1 << ID_WIDTH) - 1;
 
     logic [ID_WIDTH-1:0] outstanding_id;
-
 
     always_comb begin   // Generates logic for assigning bit value of 1-hot encoded signal 
                         // by checking which channels obi_rid signal matches outstanding_id 
@@ -31,11 +29,11 @@ module obi_r_decoder #(
 
     always_ff @(posedge clk_i) begin
         if (~rstn_i) begin
-            outstanding_id <= 32'b1;
+            outstanding_id <= ID_WIDTH'('b1);
         end else begin
             if (set_next_i) begin
-                if (outstanding_id == MAX_VALUE) begin
-                    outstanding_id <= 32'b1;
+                if (outstanding_id == ID_WIDTH'(MAX_VALUE)) begin
+                    outstanding_id <= ID_WIDTH'('b1);
                 end else begin
                     outstanding_id <= outstanding_id + 1;
                 end

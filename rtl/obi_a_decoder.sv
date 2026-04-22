@@ -4,22 +4,19 @@ import obi_pkg::addr_map;
 module obi_a_decoder #(
     parameter int SUBORDINATES = 8,
     parameter int ADDR_WIDTH = 32,
-    //parameter bit [ADDR_WIDTH-1:0] END_ADDRESS = 32'h80000000
     parameter int NoMAPS = 8
 )
 (
     input   logic [ADDR_WIDTH-1:0]              req_address_i,
-    input   obi_pkg::addr_map [NoMAPS-1:0]  address_maps_i, 
+    input   obi_pkg::addr_map                   address_maps_i [NoMAPS], 
     input   logic                               config_ready_i,     
     input   logic                               default_sel_en_i,
     input   logic [SEL_WIDTH-1:0]               default_sel_i,
-    //output  logic [SUBORDINATES-1:0]    obi_a_sel_o // Outputs a 1-hot encoded signal
     output  logic                               address_map_err_o,
     output  logic [SEL_WIDTH-1:0]               obi_a_sel_o
 
 );
     localparam int SEL_WIDTH = $clog2(SUBORDINATES);
-
 
     always_comb begin
         obi_a_sel_o = default_sel_en_i ? default_sel_i : '1; // Default obi_a_sel_o signal value
@@ -35,20 +32,6 @@ module obi_a_decoder #(
             end
         end
     end
-
-    //logic [RANGE-1:0] addr_range;   // addr_range equals top RANGE bits of input req_address_i
-    //assign addr_range = req_address_i[(ADDR_WIDTH-1): (ADDR_WIDTH-RANGE)];
-
-    /*
-    genvar i;
-    generate;   // Generates logic for assigning bit value of 1-hot encoded signal 
-                // by checking if input signal req_address_i is in the specified range
-        for (i=0; i<SUBORDINATES; i++) begin
-
-            //assign obi_a_sel_o[i] = ((addr_range == i) && (req_address_i < END_ADDRESS)) ? 1'b1  : 1'b0;
-        end
-    endgenerate
-    */
 
 endmodule
 

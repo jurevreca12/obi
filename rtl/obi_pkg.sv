@@ -4,7 +4,8 @@ package obi_pkg;
     parameter int DATA_WIDTH = 32;
     parameter int NBytes = DATA_WIDTH / 8;
     parameter int MANAGERS = 4;
-    parameter int ID_WIDTH = 32;
+    parameter int FIFO_DEPTH = 1024;
+    parameter int ID_WIDTH = $clog2(FIFO_DEPTH * SUBORDINATES)+1;
     parameter int SUBORDINATES = 2;
 
 
@@ -26,7 +27,7 @@ package obi_pkg;
         logic [ID_WIDTH-1:0]     obi_rid;
     } obi_r;
 
-    typedef struct packed  {  
+    typedef struct {  
         logic [$clog2(SUBORDINATES)-1:0]    idx;
         logic [ADDR_WIDTH-1:0]              base;
         logic [ADDR_WIDTH-1:0]              mask;

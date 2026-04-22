@@ -1,7 +1,14 @@
 import obi_pkg::obi_a;
 import obi_pkg::obi_r;
+import obi_pkg::addr_map;
 
-module obi_xbar_testing_param_module #(
+/*
+`include "../rtl/obi_xbar.sv"
+`include "../rtl/sv-includes/obi_r_if.sv"
+`include "../rtl/sv-includes/obi_a_if.sv"
+*/
+
+module obi_xbar_testing_param_module #( // TODO rename this module
     
 )
 (
@@ -60,61 +67,6 @@ module obi_xbar_testing_param_module #(
     output  logic [ID_WIDTH-1:0]    m2_rsp_id_o,
     input   logic                   m2_rsp_ready_i,
 
-/*
-// OBI RAM A port signals
-    // request channel
-    output   logic [ADDR_WIDTH-1:0]  obi_00_aaddr_o,
-    output   logic [DATA_WIDTH-1:0]  obi_00_awdata_o,
-    output   logic [NBytes-1:0]      obi_00_abe_o,
-    output   logic                   obi_00_awe_o,
-    output   logic                   obi_00_areq_o,
-    output   logic [ID_WIDTH-1:0]    obi_00_aid_o,
-    output   logic [MID_WIDTH-1:0]   obi_00_mid_o,               
-    input    logic                   obi_00_agnt_i,
-
-    // response channel
-    input  logic [ADDR_WIDTH-1:0]  obi_00_rdata_i,
-    input  logic                   obi_00_rerr_i,
-    input  logic [ID_WIDTH-1:0]    obi_00_rid_i,
-    input  logic                   obi_00_rvalid_i,
-    output logic                   obi_00_rready_o,
-
-// OBI RAM B port signals
-    // request channel
-    output   logic [ADDR_WIDTH-1:0]  obi_10_aaddr_o,
-    output   logic [DATA_WIDTH-1:0]  obi_10_awdata_o,
-    output   logic [NBytes-1:0]      obi_10_abe_o,
-    output   logic                   obi_10_awe_o,
-    output   logic                   obi_10_areq_o,
-    output   logic [ID_WIDTH-1:0]    obi_10_aid_o,
-    output   logic [MID_WIDTH-1:0]   obi_10_mid_o,
-    input    logic                   obi_10_agnt_i,
-
-    // response channel
-    input  logic [ADDR_WIDTH-1:0]  obi_10_rdata_i,
-    input  logic                   obi_10_rerr_i,
-    input  logic [ID_WIDTH-1:0]    obi_10_rid_i,
-    input  logic                   obi_10_rvalid_i,
-    output logic                   obi_10_rready_o,
-
-// OBI UART signals
-    // request channel
-    output   logic [ADDR_WIDTH-1:0]  obi_11_aaddr_o,
-    output   logic [DATA_WIDTH-1:0]  obi_11_awdata_o,
-    output   logic [NBytes-1:0]      obi_11_abe_o,
-    output   logic                   obi_11_awe_o,
-    output   logic                   obi_11_areq_o,
-    output   logic [ID_WIDTH-1:0]    obi_11_aid_o,
-    output   logic [MID_WIDTH-1:0]   obi_11_mid_o,
-    input    logic                   obi_11_agnt_i,
-
-    // response channel
-    input  logic [ADDR_WIDTH-1:0]  obi_11_rdata_i,
-    input  logic                   obi_11_rerr_i,
-    input  logic [ID_WIDTH-1:0]    obi_11_rid_i,
-    input  logic                   obi_11_rvalid_i,
-    output logic                   obi_11_rready_o
-    */
 
 // S0
     output logic [ADDR_WIDTH-1:0]           s0_obi_aadr_o,
@@ -152,7 +104,7 @@ module obi_xbar_testing_param_module #(
     localparam int FIFO_DEPTH = 1024;
     localparam int ID_WIDTH = $clog2(FIFO_DEPTH * SUBORDINATES)+1;
     localparam int NBytes = DATA_WIDTH / 8;
-    localparam bit [SUBORDINATES-1:0] [MANAGERS-1:0] Connectivity = {{4'b0011}, {4'b0111}};
+    localparam bit [SUBORDINATES-1:0] [MANAGERS-1:0] Connectivity = {{4'b0111}, {4'b0011}};
    
     obi_a_if #(
         ADDR_WIDTH,
@@ -269,25 +221,33 @@ module obi_xbar_testing_param_module #(
     assign obi_r_chans_sub[1].obi_rdata = s1_obi_rdata_i;
     assign obi_r_chans_sub[1].obi_rerr = s1_obi_rerr_i;
 
-
+    localparam int NoMAPS  = 2; 
+    localparam int SUB_WIDTH = $clog2(SUBORDINATES);
+    obi_pkg::addr_map address_map [NoMAPS];
+    assign address_map[0] = '{idx: SUB_WIDTH'('d0),base: 32'h0000_0000,mask: 32'h4000_0000};
+    assign address_map[1] = '{idx: SUB_WIDTH'('d1),base: 32'h4000_0000,mask: 32'h4000_0000};
 
     
-    testing_xbar_param #(
+    obi_xbar #(
         32,
         32,
         MANAGERS,
         SUBORDINATES,
         FIFO_DEPTH,
-        ID_WIDTH
+        ID_WIDTH,
+        NoMAPS,
+        Connectivity
     ) xbar_param (
         .clk_i(clk_i),
         .rstn_i(rstn_i),
         
-        .obi_a_chans_mgr(obi_a_chans_mgr),
-        .obi_r_chans_mgr(obi_r_chans_mgr),
+        .mgr_obi_a_chans(obi_a_chans_mgr),
+        .mgr_obi_r_chans(obi_r_chans_mgr),
 
-        .obi_a_chans_sub(obi_a_chans_sub),
-        .obi_r_chans_sub(obi_r_chans_sub)
+        .sub_obi_a_chans(obi_a_chans_sub),
+        .sub_obi_r_chans(obi_r_chans_sub),
+
+        .addr_map_i(address_map)
 
     );
 

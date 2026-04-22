@@ -4,10 +4,7 @@ module obi_ram #(
   parameter  int    DATA_WIDTH=32,
   parameter  int    ADDR_WIDTH=32,
   parameter  int    BASE_ADDR,
-  parameter  int    MEM_SIZE_WORDS,
-  localparam int    NBytes=(DATA_WIDTH / 8),
-  localparam int    MemSizeBytes=(MEM_SIZE_WORDS / 8)
-  localparam int    EndAddr = BASE_ADDR + MemSizeBytes
+  parameter  int    MEM_SIZE_WORDS
 ) (
   input  logic clk_i,
   input  logic rstn_i,
@@ -24,6 +21,10 @@ module obi_ram #(
   input  logic                  obi_rready_i,
   output logic [DATA_WIDTH-1:0] obi_rdata_o
 );
+
+  localparam int    NBytes=(DATA_WIDTH / 8);
+  localparam int    MemSizeBytes=(MEM_SIZE_WORDS / 8);
+  localparam int    EndAddr = BASE_ADDR + MemSizeBytes;
 
   typedef struct packed {
     logic [$clog2(MemSizeBytes)-1:2] addr;
@@ -53,7 +54,7 @@ module obi_ram #(
     .output_data (act_req)
 
     // verilator lint_off PINCONNECTEMPTY
-    .empty ()
+    //.empty ()
     // verilator lint_on PINCONNECTEMPTY
   );
   assign act_req_ready = obi_rready_i;
@@ -93,7 +94,7 @@ module obi_ram #(
     .output_data (obi_rdata_o)
 
     // verilator lint_off PINCONNECTEMPTY
-    .empty ()
+    //.empty ()
     // verilator lint_on PINCONNECTEMPTY
   );
 
