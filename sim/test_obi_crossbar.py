@@ -422,7 +422,7 @@ class ObiXbarTB(BaseBench):
         data: list[int] = []
         for i in range(amount):
             data.append(
-                start + 1
+                start + i
             )
         return data
 
@@ -495,6 +495,43 @@ async def linear_read_seq_bp(
                     ident=(i%(int(math.pow(2, tb.id_width)-1)))+1, # mod (ID_WIDTH-1)
                     address=addr,
                     mode=MappedAccess.READ,
+                    strobe=strb
+                )
+            )
+
+@forastero.sequence()
+@forastero.requires("request_driver", MappedRequestInitiator)
+@forastero.requires("request_backpressure_driver", obi.ObiRequestBackpressureDriver)
+@forastero.requires("request_monitor", obi.ObiRequestMonitor)
+@forastero.requires("response_driver", obi.ObiResponseDriver)
+@forastero.requires("response_backpressure_driver", mapped.MappedResponseResponder)
+#@forastero.requires("response_monitor", MappedResponseMonitor)
+async def linear_write_seq(
+    ctx: SeqContext,
+    request_driver: MappedRequestInitiator,
+    request_backpressure_driver: obi.ObiRequestBackpressureDriver,
+    request_monitor: obi.ObiRequestMonitor,
+    response_driver: obi.ObiResponseDriver,
+    response_backpressure_driver: mapped.MappedResponseResponder,
+    strb: int,
+    #response_monitor: MappedResponseMonitor,
+    #backpressure_func: partial,
+    tb: ObiXbarTB,
+    addresses: list[int] | None = None,
+    data: list[int] | None = None
+) -> None:
+    for i, tup in enumerate(zip(addresses, data)):
+        ctx.log.info(data)
+        ctx.log.info(tup)
+        addr, value = tup
+        async with ctx.lock(request_driver):
+            request_driver.enqueue(
+                MappedRequest(
+                    cycles=tb.master_delay_func(tb),
+                    ident=(i%(int(math.pow(2, tb.id_width)-1)))+1, # mod (ID_WIDTH-1)
+                    address=addr,
+                    mode=MappedAccess.WRITE,
+                    data=value,
                     strobe=strb
                 )
             )
@@ -741,7 +778,6 @@ async def ifu_lsu_m2_linear_read_bp_test3_0(
 
     tb.s1_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,5))
         
-
     tb.master_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,10))
     tb.slave_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,10))
     
@@ -949,6 +985,96 @@ async def test4_0_3m_2s_r(
         except Exception as e:
             tb._orch_log.error(f"Caught exception during reset: {e}")
             raise e
+        
+@ObiXbarTB.testcase(timeout=800000)
+@ObiXbarTB.parameter("transactions", int, 20)
+@ObiXbarTB.parameter("repeat", int, 1)
+@ObiXbarTB.parameter("start_address_s0", int, int("0000_0000", 16))
+@ObiXbarTB.parameter("start_address_s1", int, int("4000_0000", 16))
+async def test4_1_3m_2s_w(
+    tb: ObiXbarTB,
+    log,
+    transactions,
+    repeat,
+    start_address_s0,
+    start_address_s1
+
+): 
+    tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
+    tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
+    tb.m2_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
+
+    tb.s0_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,3))
+    tb.s1_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,3))
+        
+
+    tb.master_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,5))
+    tb.slave_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
+    
+    for i in range(repeat):
+        test_mem = gen_memory_data(start_address_s0, range(1, int(transactions*2+1)))
+        test_mem.update(gen_memory_data(start_address_s1, range(1, int(transactions*2+1))))
+        tb.mmio_device.flash(test_mem)
+        address_sequence = tb.gen_linear_address_seq(start_address_s0, range(0, int(transactions)*4, 4))
+        address_sequence.extend(tb.gen_linear_address_seq(start_address_s1, range(0, (int(transactions)*4), 4)))
+
+        data = tb.gen_linear_data_seq(0, transactions)
+
+        tb.random.shuffle(address_sequence)
+        m0 = tb.schedule(
+            linear_write_seq(
+                request_driver=tb.ifu_mapped_request_driver,
+                request_backpressure_driver=tb.s1_obi_request_backpressure_driver,
+                request_monitor=tb.s1_obi_request_monitor,
+                response_driver=tb.s1_obi_response_driver,
+                response_backpressure_driver=tb.ifu_mapped_response_backpressure_driver,
+                strb=0,
+                tb=tb,
+                addresses=address_sequence,
+                data=data
+            )
+        )
+        tb.random.shuffle(address_sequence)
+        m1 = tb.schedule(
+            linear_write_seq(
+                request_driver=tb.lsu_mapped_request_driver,
+                request_backpressure_driver=tb.s1_obi_request_backpressure_driver,
+                request_monitor=tb.s1_obi_request_monitor,
+                response_driver=tb.s1_obi_response_driver,
+                response_backpressure_driver=tb.lsu_mapped_response_backpressure_driver,
+                strb=1,
+                tb=tb,
+                addresses=address_sequence,
+                data=data
+            )
+        )
+        m2 = tb.schedule(
+            linear_write_seq(
+                request_driver=tb.m2_mapped_request_driver,
+                request_backpressure_driver=tb.s1_obi_request_backpressure_driver,
+                request_monitor=tb.s1_obi_request_monitor,
+                response_driver=tb.s1_obi_response_driver,
+                response_backpressure_driver=tb.m2_mapped_response_backpressure_driver,
+                strb=2,
+                tb=tb,
+                addresses=tb.gen_linear_address_seq(start_address_s1, range(0, (transactions*4), 4)),
+                data=data
+            )
+        )
+
+        await m0,m1,m2
+        transactions = int(transactions + (transactions/2))
+        try:
+            await ClockCycles(tb.clk, 100)
+            await tb.scoreboard.drain()
+            await ClockCycles(tb.clk, 500)
+            await tb.scoreboard.drain()
+            await ClockCycles(tb.clk, 500)
+            await tb.reset()
+        except Exception as e:
+            tb._orch_log.error(f"Caught exception during reset: {e}")
+            raise e
+
 
 
 
