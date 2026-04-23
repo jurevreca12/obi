@@ -15,7 +15,7 @@ module obi_xbar_testing_param_module #( // TODO rename this module
     input   logic clk_i,
     input   logic rstn_i,
 
-    // IFU signals
+// IFU signals
     // request channel
     input   logic [ADDR_WIDTH-1:0]  ifu_req_addr_i,
     input   logic [DATA_WIDTH-1:0]  ifu_req_data_i,
@@ -105,19 +105,13 @@ module obi_xbar_testing_param_module #( // TODO rename this module
     localparam int ID_WIDTH = $clog2(FIFO_DEPTH * SUBORDINATES)+1;
     localparam int NBytes = DATA_WIDTH / 8;
     localparam bit [SUBORDINATES-1:0] [MANAGERS-1:0] Connectivity = {{4'b0111}, {4'b0011}};
-   
-    obi_a_if #(
-        ADDR_WIDTH,
-        DATA_WIDTH,
-        NBytes,
-        MANAGERS,
-        ID_WIDTH,
-        SUBORDINATES
-    ) obi_a_chans_mgr  [MANAGERS] ();
 
+    obi_pkg::obi_a obi_a_chans_mgr [MANAGERS];
+    logic obi_agnt_signals_mgr [MANAGERS];
+    
     // IFU
     assign obi_a_chans_mgr[0].obi_areq = ifu_req_valid_i;
-    assign ifu_req_ready_o = obi_a_chans_mgr[0].obi_agnt;
+    assign ifu_req_ready_o = obi_agnt_signals_mgr[0];
     assign obi_a_chans_mgr[0].obi_aadr = ifu_req_addr_i;
     assign obi_a_chans_mgr[0].obi_awe =  ifu_req_write_i;
     assign obi_a_chans_mgr[0].obi_abe = ifu_req_strobe_i;
@@ -126,7 +120,7 @@ module obi_xbar_testing_param_module #( // TODO rename this module
 
     // LSU
     assign obi_a_chans_mgr[1].obi_areq = lsu_req_valid_i;
-    assign lsu_req_ready_o = obi_a_chans_mgr[1].obi_agnt;
+    assign lsu_req_ready_o = obi_agnt_signals_mgr[1];
     assign obi_a_chans_mgr[1].obi_aadr = lsu_req_addr_i;
     assign obi_a_chans_mgr[1].obi_awe =  lsu_req_write_i;
     assign obi_a_chans_mgr[1].obi_abe = lsu_req_strobe_i;
@@ -135,57 +129,43 @@ module obi_xbar_testing_param_module #( // TODO rename this module
 
     // M2
     assign obi_a_chans_mgr[2].obi_areq = m2_req_valid_i;
-    assign m2_req_ready_o = obi_a_chans_mgr[2].obi_agnt;
+    assign m2_req_ready_o = obi_agnt_signals_mgr[2];
     assign obi_a_chans_mgr[2].obi_aadr = m2_req_addr_i;
     assign obi_a_chans_mgr[2].obi_awe =  m2_req_write_i;
     assign obi_a_chans_mgr[2].obi_abe = m2_req_strobe_i;
     assign obi_a_chans_mgr[2].obi_awdata = m2_req_data_i;
     assign obi_a_chans_mgr[2].obi_aid = m2_req_id_i;
-
-
-
-    obi_r_if #(
-        ADDR_WIDTH,
-        DATA_WIDTH,
-        NBytes,
-        MANAGERS,
-        ID_WIDTH,
-        SUBORDINATES
-    ) obi_r_chans_mgr [MANAGERS] ();
         
+    obi_pkg::obi_r obi_r_chans_mgr [MANAGERS];
+    logic obi_rready_signals_mgr [MANAGERS];
 
     // IFU
     assign ifu_rsp_valid_o = obi_r_chans_mgr[0].obi_rvalid;
-    assign obi_r_chans_mgr[0].obi_rready = ifu_rsp_ready_i;
+    assign obi_rready_signals_mgr[0] = ifu_rsp_ready_i;
     assign ifu_rsp_data_o = obi_r_chans_mgr[0].obi_rdata;
     assign ifu_rsp_error_o = obi_r_chans_mgr[0].obi_rerr;
     assign ifu_rsp_id_o = obi_r_chans_mgr[0].obi_rid;
 
     // LSU
     assign lsu_rsp_valid_o = obi_r_chans_mgr[1].obi_rvalid;
-    assign obi_r_chans_mgr[1].obi_rready = lsu_rsp_ready_i;
+    assign obi_rready_signals_mgr[1] = lsu_rsp_ready_i;
     assign lsu_rsp_data_o = obi_r_chans_mgr[1].obi_rdata;
     assign lsu_rsp_error_o = obi_r_chans_mgr[1].obi_rerr;
     assign lsu_rsp_id_o = obi_r_chans_mgr[1].obi_rid;
 
     // M2
     assign m2_rsp_valid_o = obi_r_chans_mgr[2].obi_rvalid;
-    assign obi_r_chans_mgr[2].obi_rready = m2_rsp_ready_i;
+    assign obi_rready_signals_mgr[2] = m2_rsp_ready_i;
     assign m2_rsp_data_o = obi_r_chans_mgr[2].obi_rdata;
     assign m2_rsp_error_o = obi_r_chans_mgr[2].obi_rerr;
     assign m2_rsp_id_o = obi_r_chans_mgr[2].obi_rid;
 
-    obi_a_if #(
-        ADDR_WIDTH,
-        DATA_WIDTH,
-        NBytes,
-        MANAGERS,
-        ID_WIDTH,
-        SUBORDINATES
-    ) obi_a_chans_sub [SUBORDINATES]();
+
+    obi_pkg::obi_a obi_a_chans_sub [SUBORDINATES];
+    logic obi_agnt_signals_sub [SUBORDINATES];
 
     // S0
-    assign obi_a_chans_sub[0].obi_agnt = s0_obi_agnt_i;
+    assign obi_agnt_signals_sub[0] = s0_obi_agnt_i;
     assign s0_obi_areq_o = obi_a_chans_sub[0].obi_areq;
     assign s0_obi_aadr_o = obi_a_chans_sub[0].obi_aadr;
     assign s0_obi_awe_o = obi_a_chans_sub[0].obi_awe;
@@ -193,30 +173,25 @@ module obi_xbar_testing_param_module #( // TODO rename this module
     assign s0_obi_awdata_o = obi_a_chans_sub[0].obi_awdata;
 
     // S1
-    assign obi_a_chans_sub[1].obi_agnt = s1_obi_agnt_i;
+    assign obi_agnt_signals_sub[1] = s1_obi_agnt_i;
     assign s1_obi_areq_o = obi_a_chans_sub[1].obi_areq;
     assign s1_obi_aadr_o = obi_a_chans_sub[1].obi_aadr;
     assign s1_obi_awe_o = obi_a_chans_sub[1].obi_awe;
     assign s1_obi_abe_o = obi_a_chans_sub[1].obi_abe;
     assign s1_obi_awdata_o = obi_a_chans_sub[1].obi_awdata;
 
-    obi_r_if #(
-        ADDR_WIDTH,
-        DATA_WIDTH,
-        NBytes,
-        MANAGERS,
-        ID_WIDTH,
-        SUBORDINATES
-    ) obi_r_chans_sub [SUBORDINATES]();
+
+    obi_pkg::obi_r obi_r_chans_sub [SUBORDINATES];
+    logic obi_rready_signals_sub [SUBORDINATES];
 
     // S0
-    assign s0_obi_rready_o = obi_r_chans_sub[0].obi_rready;
+    assign s0_obi_rready_o = obi_rready_signals_sub[0];
     assign obi_r_chans_sub[0].obi_rvalid = s0_obi_rvalid_i;
     assign obi_r_chans_sub[0].obi_rdata = s0_obi_rdata_i;
     assign obi_r_chans_sub[0].obi_rerr = s0_obi_rerr_i;
 
     // S1
-    assign s1_obi_rready_o = obi_r_chans_sub[1].obi_rready;
+    assign s1_obi_rready_o = obi_rready_signals_sub[1];
     assign obi_r_chans_sub[1].obi_rvalid = s1_obi_rvalid_i;
     assign obi_r_chans_sub[1].obi_rdata = s1_obi_rdata_i;
     assign obi_r_chans_sub[1].obi_rerr = s1_obi_rerr_i;
@@ -242,10 +217,14 @@ module obi_xbar_testing_param_module #( // TODO rename this module
         .rstn_i(rstn_i),
         
         .mgr_obi_a_chans(obi_a_chans_mgr),
+        .mgr_obi_agnt_signals(obi_agnt_signals_mgr),
         .mgr_obi_r_chans(obi_r_chans_mgr),
+        .mgr_obi_rready_signals(obi_rready_signals_mgr),
 
         .sub_obi_a_chans(obi_a_chans_sub),
+        .sub_obi_agnt_signals(obi_agnt_signals_sub),
         .sub_obi_r_chans(obi_r_chans_sub),
+        .sub_obi_rready_signals(obi_rready_signals_sub),
 
         .addr_map_i(address_map)
 

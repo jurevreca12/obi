@@ -25,14 +25,18 @@ module obi_xbar #(
     input   logic rstn_i,
 
 // Manager -OBI-> XBAR Manager-Router
-    obi_a_if.slave mgr_obi_a_chans [M_ROUTERS], // An OBI A channel for each Manager 
+    input obi_pkg::obi_a mgr_obi_a_chans [M_ROUTERS], // An OBI A channel for each Manager
+    output logic  mgr_obi_agnt_signals [M_ROUTERS],
 // Manager <-OBI- XBAR Manager-Router
-    obi_r_if.slave mgr_obi_r_chans [M_ROUTERS], // An OBI R channel for each manager
+    output obi_pkg::obi_r mgr_obi_r_chans [M_ROUTERS], // An OBI R channel for each manager
+    input logic mgr_obi_rready_signals[M_ROUTERS],
 
 // XBAR Subordinate-Router -OBI-> Subordinate
-    obi_a_if.master sub_obi_a_chans [S_ROUTERS],// An OBI A channel for each Subordinate
+    output obi_pkg::obi_a sub_obi_a_chans [S_ROUTERS], // An OBI A channel for each Subordinate
+    input logic sub_obi_agnt_signals [S_ROUTERS],
 // XBAR Subordinate-Router <-OBI- Subordinate
-    obi_r_if.master sub_obi_r_chans [S_ROUTERS],// An OBI R channel for each Subordinate   
+    input obi_pkg::obi_r sub_obi_r_chans [S_ROUTERS], // An OBI R channel for each Subordinate
+    output logic sub_obi_rready_signals[S_ROUTERS],
 
 // Address map used to map address space to Subordinates
     input obi_pkg::addr_map addr_map_i [NoMAPS]
@@ -78,21 +82,21 @@ module obi_xbar #(
         ) i_manager_router(
             .clk_i(clk_i),
             .rstn_i(rstn_i),
-        // Manager <-OBI-> Subordinate interfaces   TODO change these
+        // Manager-Router <-OBI-> Subordinate-Router
             .obi_a_channels_o(mr_obi_a_matrix[i]),
             .obi_r_channels_i(mr_obi_r_matrix[i]),
             .obi_agnt_array_i(mr_obi_agnt_matrix[i]),
             .obi_rready_array_o(mr_obi_rready_matrix[i]),
-        // Core -OBI-> XBAR
+        // Manager -OBI-> Manager-Router
             .obi_areq_i(mgr_obi_a_chans[i].obi_areq),
             .obi_aadr_i(mgr_obi_a_chans[i].obi_aadr),
             .obi_awe_i(mgr_obi_a_chans[i].obi_awe),
             .obi_abe_i(mgr_obi_a_chans[i].obi_abe),
             .obi_awdata_i(mgr_obi_a_chans[i].obi_awdata),
             .obi_aid_i(mgr_obi_a_chans[i].obi_aid),
-            .obi_agnt_o(mgr_obi_a_chans[i].obi_agnt),
-        // Core <-OBI- XBAR
-            .obi_rready_i(mgr_obi_r_chans[i].obi_rready),
+            .obi_agnt_o(mgr_obi_agnt_signals[i]),
+        // Manager <-OBI- Manager-Router
+            .obi_rready_i(mgr_obi_rready_signals[i]),
             .obi_rdata_o(mgr_obi_r_chans[i].obi_rdata),
             .obi_rerr_o(mgr_obi_r_chans[i].obi_rerr),
             .obi_rvalid_o(mgr_obi_r_chans[i].obi_rvalid),
@@ -114,21 +118,21 @@ module obi_xbar #(
         ) i_subordinate_router (
             .clk_i(clk_i),
             .rstn_i(rstn_i),
-        // Subordinate interface <-OBI-> Managers
+        // Subordinate-Router <-OBI-> Manager-Router
             .obi_a_channels_i(sr_obi_a_matrix[i]),
             .obi_agnt_array_o(sr_obi_agnt_matrix[i]),
             .obi_r_channels_o(sr_obi_r_matrix[i]),
             .obi_rready_array_i(sr_obi_rready_matrix[i]),
-        // Subordinate interface -OBI-> Subordinate 
+        // Subordinate-Router -OBI-> Subordinate 
             .obi_aadr_o(sub_obi_a_chans[i].obi_aadr),
             .obi_awe_o(sub_obi_a_chans[i].obi_awe),
             .obi_abe_o(sub_obi_a_chans[i].obi_abe),
             .obi_awdata_o(sub_obi_a_chans[i].obi_awdata),
             .req_valid_o(sub_obi_a_chans[i].obi_areq),
-            .req_read_i(sub_obi_a_chans[i].obi_agnt),
-        // Subordinate interface <-OBI- Subordinate 
+            .req_read_i(sub_obi_agnt_signals[i]),
+        // Subordinate-Router <-OBI- Subordinate 
             .rsp_write_i(sub_obi_r_chans[i].obi_rvalid),
-            .rsp_ready_o(sub_obi_r_chans[i].obi_rready),
+            .rsp_ready_o(sub_obi_rready_signals[i]),
             .obi_rdata_i(sub_obi_r_chans[i].obi_rdata),
             .obi_rerr_i(sub_obi_r_chans[i].obi_rerr)
         );
