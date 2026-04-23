@@ -14,8 +14,10 @@ module obi_xbar #(
     parameter int DATA_WIDTH = 32,
     parameter int M_ROUTERS = 1,
     parameter int S_ROUTERS = 1,
-    parameter int FIFO_DEPTH = 1024,
-    parameter int ID_WIDTH = $clog2(FIFO_DEPTH*S_ROUTERS)+1, // ID_WIDTH has to be >$clog2(FIFO_DEPTH*S_ROUTERS)
+    parameter int SR_FIFO_DEPTH = 1024,
+    parameter int ID_WIDTH = $clog2(SR_FIFO_DEPTH*S_ROUTERS)+1, // ID_WIDTH has to be >$clog2(FIFO_DEPTH*S_ROUTERS), atlest FIFO_DEPTH*S_ROUTERS unique ids
+    parameter bit USE_ID_FOR_ROUTING = '0,
+    parameter int MR_FIFO_DEPTH = 1024,
     parameter int NoMAPS = 1, // Number of mappings in the address map
 // Connectivity matrix defines connections between Manager-Routers and Subordinate-Routers
     parameter bit [S_ROUTERS-1:0] [M_ROUTERS-1:0] Connectivity = '1 // By default all managers are connected to all subordinates and vice versa
@@ -78,6 +80,8 @@ module obi_xbar #(
             i,
             S_ROUTERS,
             ID_WIDTH,
+            USE_ID_FOR_ROUTING,
+            MR_FIFO_DEPTH,
             NoMAPS
         ) i_manager_router(
             .clk_i(clk_i),
@@ -110,7 +114,7 @@ module obi_xbar #(
     for (genvar i = 0; i<S_ROUTERS; i++) begin : gen_sr
         obi_subordinate_router #(
             M_ROUTERS,
-            FIFO_DEPTH,
+            SR_FIFO_DEPTH,
             ADDR_WIDTH,
             DATA_WIDTH,
             ID_WIDTH,

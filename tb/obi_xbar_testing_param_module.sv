@@ -101,8 +101,10 @@ module obi_xbar_testing_param_module #( // TODO rename this module
     localparam int MANAGERS = 4;
     localparam int MID_WIDTH = $clog2(MANAGERS);
     localparam int SUBORDINATES = 2;
-    localparam int FIFO_DEPTH = 1024;
-    localparam int ID_WIDTH = $clog2(FIFO_DEPTH * SUBORDINATES)+1;
+    localparam int SR_FIFO_DEPTH = 1024;
+    localparam bit USE_ID_FOR_ROUTING = '0;
+    localparam int MR_FIFO_DEPTH = 1024;
+    localparam int ID_WIDTH = $clog2(SR_FIFO_DEPTH * SUBORDINATES)+1;
     localparam int NBytes = DATA_WIDTH / 8;
     localparam bit [SUBORDINATES-1:0] [MANAGERS-1:0] Connectivity = {{4'b0111}, {4'b0011}};
 
@@ -208,8 +210,10 @@ module obi_xbar_testing_param_module #( // TODO rename this module
         32,
         MANAGERS,
         SUBORDINATES,
-        FIFO_DEPTH,
+        SR_FIFO_DEPTH,
         ID_WIDTH,
+        USE_ID_FOR_ROUTING,
+        MR_FIFO_DEPTH,
         NoMAPS,
         Connectivity
     ) xbar_param (

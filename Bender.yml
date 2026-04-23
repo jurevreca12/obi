@@ -23,6 +23,7 @@ sources:
     - rtl/obi_subordinate_router.sv
     - rtl/mapped2obi.sv
     - rtl/obi_ram.sv
+    - rtl/linear_cnt.sv
     
     - target: sim
       files:

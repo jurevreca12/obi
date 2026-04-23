@@ -12,6 +12,8 @@ module obi_manager_router #(
     parameter bit [$clog2(M_ROUTERS)-1:0] MANAGER_ID = '0,
     parameter int S_ROUTERS = 8,
     parameter int ID_WIDTH = 32,
+    parameter bit USE_ID_FOR_ROUTING = '0,
+    parameter int FIFO_DEPTH = 1024,
     parameter int NoMAPS = 1 // Number of mappings in the address map
 
 )
@@ -50,24 +52,36 @@ module obi_manager_router #(
 // Address map used to map address space to Subordinates
     input obi_pkg::addr_map addr_map_i [NoMAPS]
 );
+
+    logic obi_rready; // This rready is the value of rready the Subordinate-Router recieves
+    logic obi_agnt; // This agnt is the value of agnt the Manager-Router recieves
+    logic obi_areq; // This areq is the value of areq the Subordinate-Router recieves
+    logic obi_rvalid; // this rvalid is the value of rvalid the Manager-Router recieves
+
 // OBI Manager-Router -OBI_A-> Subordinate-Router
     obi_pkg::obi_a obi_a;
 
-    assign obi_a.obi_areq   =   obi_areq_i;
-    assign obi_a.obi_aadr   =   obi_aadr_i;
-    assign obi_a.obi_awe    =   obi_awe_i;
-    assign obi_a.obi_abe    =   obi_abe_i;
-    assign obi_a.obi_awdata =   obi_awdata_i;
-    assign obi_a.obi_aid    =   obi_aid_i;
-    assign obi_a.obi_mid    =   MANAGER_ID;
+    always_comb begin
+        obi_a.obi_areq   =   obi_areq;
+        obi_a.obi_aadr   =   obi_aadr_i;
+        obi_a.obi_awe    =   obi_awe_i;
+        obi_a.obi_abe    =   obi_abe_i;
+        obi_a.obi_awdata =   obi_awdata_i;
+        obi_a.obi_aid    =   obi_aid_i;
+        obi_a.obi_mid    =   MANAGER_ID;
+    end
+
+    
 
 // OBI Manager-Router <-OBI_A- Subordinate-Router
     obi_pkg::obi_r obi_r;
+    always_comb begin
+        obi_rdata_o      =   obi_r.obi_rdata;
+        obi_rerr_o       =   obi_r.obi_rerr;
+        obi_rvalid       =   obi_r.obi_rvalid;
+        obi_rid_o        =   obi_r.obi_rid;
+    end
 
-    assign obi_rdata_o      =   obi_r.obi_rdata;
-    assign obi_rerr_o       =   obi_r.obi_rerr;
-    assign obi_rvalid_o     =   obi_r.obi_rvalid;
-    assign obi_rid_o        =   obi_r.obi_rid;
 
 // Select signals used for switching by the OBI Switch
     logic [$clog2(S_ROUTERS)-1:0] obi_a_sel;
@@ -79,14 +93,81 @@ module obi_manager_router #(
 // Array of rid signals used to compare with expected rid for switching
     logic [ID_WIDTH-1:0] rid_array[S_ROUTERS];
 
-// R decoder
-    // TODO propagate address_maps 
+// Addr map
     logic address_map_err;
-    /*
-    soc_defines::addr_map [1:0]  address_maps;
-    assign address_maps[0] = '{3'd0,32'h0000_0000,32'h4000_0000};
-    assign address_maps[1] = '{3'd1,32'h4000_0000,32'h4000_0000};
-    */
+    
+// Configure module based on USE_ID_FOR_ROUTING parameter
+    logic [ID_WIDTH-1:0] outstanding_id; 
+
+    localparam RESET_VALUE = 1'b1;
+    localparam USE_CNT_NEXT = USE_ID_FOR_ROUTING;
+    localparam ID_FIFO_WIDTH = ID_WIDTH;
+    if (USE_ID_FOR_ROUTING) begin : gen_id_cnt
+        logic cnt_next; // Signal used to increment counter (id)
+        assign cnt_next = obi_rready_i & obi_rvalid_o;
+        always_comb begin
+            obi_rready = obi_rready_i;
+            obi_agnt_o = obi_agnt;
+            obi_areq = obi_areq_i;
+            obi_rvalid_o = obi_rvalid;
+        end
+        linear_cnt #(
+            RESET_VALUE,
+            ID_WIDTH,
+            USE_CNT_NEXT
+        ) id_cnt (
+            .clk_i(clk_i),
+            .rstn_i(rstn_i),
+            .cnt_next_i(cnt_next),
+            .cnt_value_o(outstanding_id)
+        );
+    end 
+    else begin : gen_id_fifo
+        logic id_wr_en;
+        logic id_rd_en;
+        logic [ID_FIFO_WIDTH-1:0] id_data_in;
+        logic [ID_FIFO_WIDTH-1:0] id_data_out;
+        logic id_fifo_empty;
+        logic id_fifo_full;
+
+        assign id_wr_en = obi_areq_i & obi_agnt_o;
+        assign id_rd_en = obi_rvalid_o & obi_rready;
+        assign id_data_in = obi_aid_i;
+        assign outstanding_id = id_data_out;
+        
+        
+        always_comb begin
+            obi_agnt_o = obi_agnt;
+            obi_rready = obi_rready_i;
+            obi_areq = obi_areq_i;
+            obi_rvalid_o = obi_rvalid;
+            if (id_fifo_full) begin
+                obi_agnt_o = '0;
+                obi_areq = '0;
+            end
+            
+            if (id_fifo_empty) begin
+                obi_rready = '0;
+                obi_rvalid = '0;
+            end
+                
+        end
+            
+
+        fifo #(
+            FIFO_DEPTH,
+            ID_FIFO_WIDTH
+        ) id_fifo (
+            .clk_i(clk_i),
+            .rstn_i(rstn_i),
+            .wr_en_i(id_wr_en),
+            .rd_en_i(id_rd_en),
+            .full_o(id_fifo_full),
+            .empty_o(id_fifo_empty),
+            .w_data_i(id_data_in),
+            .r_data_o(id_data_out)
+        );
+    end
 
 // OBI Manager-Router Switch
     obi_mr_switch #(
@@ -95,8 +176,8 @@ module obi_manager_router #(
     ) obi_mr_switch_inst (
         .obi_a_i(obi_a),
         .obi_r_o(obi_r),
-        .obi_agnt_o(obi_agnt_o),
-        .obi_rready_i(obi_rready_i),
+        .obi_agnt_o(obi_agnt),
+        .obi_rready_i(obi_rready),
         .obi_a_channels_o(obi_a_channels_o),
         .obi_r_channels_i(obi_r_channels_i),
         .obi_agnt_array_i(obi_agnt_array_i),
@@ -126,7 +207,7 @@ module obi_manager_router #(
     ) obi_r_decoder_inst(
         .clk_i(clk_i),
         .rstn_i(rstn_i),
-        .set_next_i(set_next),
+        .outstanding_id(outstanding_id),
         .rid_array_i(rid_array),
         .obi_r_sel_o(obi_r_sel)
     );

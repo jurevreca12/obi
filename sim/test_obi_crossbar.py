@@ -916,15 +916,15 @@ async def test4_0_3m_2s_r(
     start_address_s1
 
 ): 
-    tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
-    tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
-    tb.m2_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
+    tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,7))
+    tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,4))
+    tb.m2_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,9))
 
-    tb.s0_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,3))
-    tb.s1_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,3))
+    tb.s0_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,4))
+    tb.s1_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,4))
         
 
-    tb.master_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,5))
+    tb.master_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,3))
     tb.slave_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
     
     for i in range(repeat):
