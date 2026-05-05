@@ -19,7 +19,7 @@ sources:
     - rtl/obi_manager_router.sv
     - rtl/obi_r_decoder.sv
     - rtl/obi-timer.sv
-    - rtl/obi-uart.sv
+    - rtl/obi_uart.sv
     - rtl/obi_subordinate_router.sv
     - rtl/mapped2obi.sv
     - rtl/obi_ram.sv
