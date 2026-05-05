@@ -54,7 +54,7 @@ module obi_subordinate_router #(
     lf_lfsr_prng #(
         .LFSR_WIDTH (LFSR_WIDTH ),
         .PRN_WIDTH  (PRN_WIDTH  ),
-        .TAP_MASK   (PRN_WIDTH  )
+        .TAP_MASK   (TAP_MASK  )
     ) prng_inst (
         .state_i    (lfsr_state_in  ),
         .state_o    (lfsr_state_out ),
@@ -265,7 +265,7 @@ module obi_subordinate_router #(
                         req_wr_en   = '1;   // Set the req write enable signal to high so request gets written to REQ FIFO
                         id_wr_en    = '1;   // Set the id write enable signal to high so request id's get written to ID FIFO
                     end else begin  // If request not granted or inactive
-                        obi_agnt_array_o[idx] = '0; // Set grant to low
+                        obi_agnt_array_o[idx] = '0; // Disconnect grant
                         if (int'(idx) >= MANAGERS_CONS) begin
                             idx = '0;               // Reset idx (overflow)
                         end else begin
@@ -295,7 +295,7 @@ module obi_subordinate_router #(
                         req_wr_en   = '1;   // Set the req write enable signal to high so request gets written to REQ FIFO
                         id_wr_en    = '1;   // Set the id write enable signal to high so request id's get written to ID FIFO
                     end else begin  // If request not granted or inactive
-                        obi_agnt_array_o[idx] = '0; // Set grant to low
+                        obi_agnt_array_o[idx] = '0; // Disconnect grant
                         if (int'(idx) >= MANAGERS_CONS) begin
                             idx = '1;               // Reset idx (overflow)
                         end else begin
@@ -305,7 +305,7 @@ module obi_subordinate_router #(
                 end
             end
             if (selected) begin     // If a request has been granted
-                obi_agnt_array_o[active_idx] = ~req_fifo_full;  // Set grant to high
+                obi_agnt_array_o[active_idx] = '1;  // Set grant to high
             end
         end
     end
@@ -313,7 +313,7 @@ module obi_subordinate_router #(
 // OBI R channel DMUX
     always_comb begin
         // Reset to defaults
-        obi_r_channels_o    = '{default: '0};
+        obi_r_channels_o    = '{default: '0}; // Disconnect
         rsp_rd_en           = '0;
         id_rd_en            = '0;
         if (~rsp_fifo_empty && ~id_fifo_empty) begin // If RSP FIFO has a valid response, set the selected R channel signal values

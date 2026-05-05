@@ -58,7 +58,7 @@ class ObiXbarTB(BaseBench):
 
         self.subordinates = 2
         self.fifo_width = 1024
-        self.id_width = math.log2(self.fifo_width * self.subordinates) +1 
+        self.id_width = 4 #math.log2(self.fifo_width * self.subordinates) +1 
 
         self.mmio_device = Memory_device(self)
 
@@ -259,6 +259,7 @@ class ObiXbarTB(BaseBench):
     def push_response_reference(    # Pushes the response transaction signals reference from response driver input to the response monitor for comparison
         self, driver:obi.ObiResponseDriver, event:DriverEvent, obj:obi.ObiResponse
     ):
+        self.log.info("mid captured: " + str(obj.obi_mid))
         manager = self.response_decode(obj.obi_mid)
         monitor = manager + "_mapped_response_monitor"
         self.log.info("Pushing reference to " + monitor + " with mid: " + str(obj.obi_mid))
@@ -278,7 +279,7 @@ class ObiXbarTB(BaseBench):
             self, monitor:obi.ObiRequestMonitor, event:MonitorEvent, obj:obi.ObiRequest
     ):  
         driver_name = getattr(self, monitor.name[0:monitor.name.find("_")] + "_obi_response_driver" )
-        self.log.info(msg=f"Captured request transaction on slave")
+        self.log.info(msg=f"Captured request transaction on slave: " + str(obj))
         match obj.obi_awe: # Check if request was a READ or WRITE transaction
             case obi.ObiAccess.READ:  # On READ, read data from address in mmio device
                 read = self.mmio_device.read(obj.obi_aadr)
@@ -349,15 +350,17 @@ class ObiXbarTB(BaseBench):
 # ---------- Monitor Filters ----------
 
     def filter(self, monitor: obi.ObiRequestMonitor, event: MonitorEvent, obj: obi.ObiRequest) -> obi.ObiRequest | None:
-        self.log.info(obj)
+        self.log.info("Mon Filter Capture: " + str(obj))
         for queue in self.scoreboard.channels[monitor.name]._q_ref.values():
             if queue.level > 0:
                 ref = queue.peek()
-                self.log.info(ref)
+                self.log.info("Filter Q Reference: " + str(ref))
                 if ref == obj:
                     self.log.info("match found, mid: " + str(ref.obi_mid))
                     obj.obi_mid = ref.obi_mid
+        self.log.info("Mon Filter Return: " + str(obj))
         return obj
+        
 
 
 # ---------- Decoder methods ----------
@@ -496,8 +499,11 @@ async def linear_read_seq_bp(
                     address=addr,
                     mode=MappedAccess.READ,
                     strobe=strb
-                )
-            )
+                ), DriverEvent.POST_DRIVE
+            ).wait()
+
+        #async with ctx.lock(request_backpressure_driver):
+        #    await request_monitor.wait_for(MonitorEvent.CAPTURE)
 
 @forastero.sequence()
 @forastero.requires("request_driver", MappedRequestInitiator)
@@ -709,7 +715,7 @@ async def ifu_lsu_linear_read_test2_0(
     await m0,m1
 
 @ObiXbarTB.testcase(timeout=80000)
-@ObiXbarTB.parameter("repeat", int, 10*1)
+@ObiXbarTB.parameter("repeat", int, 4300)
 @ObiXbarTB.parameter("start_address", int, int("0000_0000", 16))
 async def ifu_lsu_linear_read_bp_test2_1(
     tb: ObiXbarTB,
@@ -721,14 +727,14 @@ async def ifu_lsu_linear_read_bp_test2_1(
     tb.mmio_device.flash(test_mem)
     address_sequence = tb.gen_linear_address_seq(start_address, range(0, (repeat*4), 4))
     
-    tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
-    tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
+    tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,10))
+    tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,10))
 
-    tb.s0_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,2))
+    tb.s0_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,5))
         
 
-    tb.master_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
-    tb.slave_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
+    tb.master_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
+    tb.slave_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,5))
     
     m0 = tb.schedule(
         linear_read_seq_bp(

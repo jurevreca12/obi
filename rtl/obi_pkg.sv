@@ -37,7 +37,7 @@ package obi_pkg;
     function automatic obi_cfg obi_default_cfg( 
         int unsigned AddrWidth, 
         int unsigned DataWidth,
-        int unsigned IdWidth
+        int unsigned IdWidth // id 0 is an illegal id value
     );
         obi_default_cfg = '{
             AddrWidth: AddrWidth,
@@ -48,33 +48,6 @@ package obi_pkg;
             SrFifoDepth: int'($pow(2,IdWidth))
         };
     endfunction
-
-/*
-
-    typedef struct packed{
-        logic                           obi_areq;
-        logic [ADDR_WIDTH-1:0]          obi_aadr;
-        logic                           obi_awe;
-        logic [NBytes-1:0]              obi_abe;
-        logic [DATA_WIDTH-1:0]          obi_awdata;
-        logic [ID_WIDTH-1:0]            obi_aid;
-        logic [$clog2(MANAGERS)-1:0]    obi_mid;
-    } obi_a;
-
-    typedef struct packed{
-        logic                    obi_rvalid;
-        logic [DATA_WIDTH-1:0]   obi_rdata;
-        logic                    obi_rerr;
-        logic [ID_WIDTH-1:0]     obi_rid;
-    } obi_r;
-
-    typedef struct {  
-        logic [$clog2(SUBORDINATES)-1:0]    idx;
-        logic [ADDR_WIDTH-1:0]              base;
-        logic [ADDR_WIDTH-1:0]              mask;
-    } addr_map;
-
-*/
 
 endpackage
 

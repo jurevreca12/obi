@@ -9,7 +9,7 @@ class ObiRequestMonitor(BaseMonitor):
         while True:
             await RisingEdge(self.clk)
             if self.rst.value == 0:
-                await RisingEdge(self.clk)
+                #await RisingEdge(self.clk)
                 continue
             #if self.io.get("areq") and self.io.get("agnt"):
             if self.io.get("areq") and self.io.get("agnt"):

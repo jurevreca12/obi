@@ -96,7 +96,8 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
     localparam int SR_FIFO_DEPTH = 1024;
     localparam bit USE_ID_FOR_ROUTING = '0;
     localparam int MR_FIFO_DEPTH = 1024;
-    localparam int ID_WIDTH = $clog2(SR_FIFO_DEPTH * SUBORDINATES)+1;
+    //localparam int ID_WIDTH = $clog2(SR_FIFO_DEPTH * SUBORDINATES)+1;
+    localparam int ID_WIDTH = 4;
     localparam int NBytes = DATA_WIDTH / 8;
     //localparam bit [SUBORDINATES-1:0] [MANAGERS-1:0] Connectivity = {{4'b0111}, {4'b0011}};
     
@@ -113,7 +114,7 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
 
     `TYPEDEF_XBAR_CONNECTIVITY(Connectivity, SUBORDINATES, MANAGERS, {{4'b0111}, {4'b0011}});
 
-    //`TYPEDEF_XBAR_CONNECTIVITY(Connectivity, SUBORDINATES, MANAGERS, {{4'b1111}, {4'b1111}});
+    //`TYPEDEF_XBAR_CONNECTIVITY(Connectivity, SUBORDINATES, MANAGERS, {{2'b00}, {2'b11}});
 
     //assign Connectivity = {{4'b0111}, {4'b0011}};
 
@@ -150,6 +151,7 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
     assign obi_a_chans_mgr[1].obi_aid = lsu_req_id_i;
 
     // M2
+    
     assign obi_a_chans_mgr[2].obi_areq = m2_req_valid_i;
     assign m2_req_ready_o = obi_agnt_signals_mgr[2];
     assign obi_a_chans_mgr[2].obi_aadr = m2_req_addr_i;
@@ -157,7 +159,7 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
     assign obi_a_chans_mgr[2].obi_abe = m2_req_strobe_i;
     assign obi_a_chans_mgr[2].obi_awdata = m2_req_data_i;
     assign obi_a_chans_mgr[2].obi_aid = m2_req_id_i;
-        
+       
     obi_r obi_r_chans_mgr [MANAGERS];
     logic obi_rready_signals_mgr [MANAGERS];
 
@@ -176,12 +178,13 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
     assign lsu_rsp_id_o = obi_r_chans_mgr[1].obi_rid;
 
     // M2
+    
     assign m2_rsp_valid_o = obi_r_chans_mgr[2].obi_rvalid;
     assign obi_rready_signals_mgr[2] = m2_rsp_ready_i;
     assign m2_rsp_data_o = obi_r_chans_mgr[2].obi_rdata;
     assign m2_rsp_error_o = obi_r_chans_mgr[2].obi_rerr;
     assign m2_rsp_id_o = obi_r_chans_mgr[2].obi_rid;
-
+    
 
     obi_a obi_a_chans_sub [SUBORDINATES];
     logic obi_agnt_signals_sub [SUBORDINATES];
