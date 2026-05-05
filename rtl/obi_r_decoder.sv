@@ -1,5 +1,5 @@
-// OBI R channel decoder
 
+// OBI R channel decoder
 module obi_r_decoder #(
     parameter int SUBORDINATES = 8,
     parameter int ID_WIDTH = 32

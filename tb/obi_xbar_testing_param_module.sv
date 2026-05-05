@@ -1,14 +1,6 @@
-import obi_pkg::obi_a;
-import obi_pkg::obi_r;
-import obi_pkg::addr_map;
+//`include "../rtl/obi_typedef.svh"
 
-/*
-`include "../rtl/obi_xbar.sv"
-`include "../rtl/sv-includes/obi_r_if.sv"
-`include "../rtl/sv-includes/obi_a_if.sv"
-*/
-
-module obi_xbar_testing_param_module #( // TODO rename this module
+module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this module
     
 )
 (
@@ -95,7 +87,7 @@ module obi_xbar_testing_param_module #( // TODO rename this module
     input  logic                            s1_obi_rerr_i
 
 );
-
+    
     localparam int ADDR_WIDTH = 32;
     localparam int DATA_WIDTH = 32;
     localparam int MANAGERS = 4;
@@ -106,9 +98,37 @@ module obi_xbar_testing_param_module #( // TODO rename this module
     localparam int MR_FIFO_DEPTH = 1024;
     localparam int ID_WIDTH = $clog2(SR_FIFO_DEPTH * SUBORDINATES)+1;
     localparam int NBytes = DATA_WIDTH / 8;
-    localparam bit [SUBORDINATES-1:0] [MANAGERS-1:0] Connectivity = {{4'b0111}, {4'b0011}};
+    //localparam bit [SUBORDINATES-1:0] [MANAGERS-1:0] Connectivity = {{4'b0111}, {4'b0011}};
+    
 
-    obi_pkg::obi_a obi_a_chans_mgr [MANAGERS];
+    localparam obi_pkg::xbar_cfg xbar_cfg = obi_pkg::xbar_default_cfg(MANAGERS, SUBORDINATES);
+
+    localparam obi_pkg::obi_cfg obi_cfg = obi_pkg::obi_default_cfg(ADDR_WIDTH, DATA_WIDTH, ID_WIDTH);
+
+    `TYPEDEF_OBI_A_CHAN(obi_a, ADDR_WIDTH, DATA_WIDTH, ID_WIDTH, MANAGERS);
+
+    `TYPEDEF_OBI_R_CHAN(obi_r, DATA_WIDTH, ID_WIDTH);
+
+    `TYPEDEF_XBAR_ADDR_MAP(addr_map, ADDR_WIDTH, SUBORDINATES);
+
+    `TYPEDEF_XBAR_CONNECTIVITY(Connectivity, SUBORDINATES, MANAGERS, {{4'b0111}, {4'b0011}});
+
+    //`TYPEDEF_XBAR_CONNECTIVITY(Connectivity, SUBORDINATES, MANAGERS, {{4'b1111}, {4'b1111}});
+
+    //assign Connectivity = {{4'b0111}, {4'b0011}};
+
+    //localparam int NoMAPS  = 2; 
+    localparam int SUB_WIDTH = $clog2(xbar_cfg.Subordinates);
+    addr_map address_map [xbar_cfg.NoMaps];
+    assign address_map[0] = '{idx: SUB_WIDTH'('d0),base: 32'h0000_0000,mask: 32'h4000_0000};
+    assign address_map[1] = '{idx: SUB_WIDTH'('d1),base: 32'h4000_0000,mask: 32'h4000_0000};
+
+
+
+
+
+
+    obi_a obi_a_chans_mgr [MANAGERS];
     logic obi_agnt_signals_mgr [MANAGERS];
     
     // IFU
@@ -138,7 +158,7 @@ module obi_xbar_testing_param_module #( // TODO rename this module
     assign obi_a_chans_mgr[2].obi_awdata = m2_req_data_i;
     assign obi_a_chans_mgr[2].obi_aid = m2_req_id_i;
         
-    obi_pkg::obi_r obi_r_chans_mgr [MANAGERS];
+    obi_r obi_r_chans_mgr [MANAGERS];
     logic obi_rready_signals_mgr [MANAGERS];
 
     // IFU
@@ -163,7 +183,7 @@ module obi_xbar_testing_param_module #( // TODO rename this module
     assign m2_rsp_id_o = obi_r_chans_mgr[2].obi_rid;
 
 
-    obi_pkg::obi_a obi_a_chans_sub [SUBORDINATES];
+    obi_a obi_a_chans_sub [SUBORDINATES];
     logic obi_agnt_signals_sub [SUBORDINATES];
 
     // S0
@@ -183,7 +203,7 @@ module obi_xbar_testing_param_module #( // TODO rename this module
     assign s1_obi_awdata_o = obi_a_chans_sub[1].obi_awdata;
 
 
-    obi_pkg::obi_r obi_r_chans_sub [SUBORDINATES];
+    obi_r obi_r_chans_sub [SUBORDINATES];
     logic obi_rready_signals_sub [SUBORDINATES];
 
     // S0
@@ -198,24 +218,15 @@ module obi_xbar_testing_param_module #( // TODO rename this module
     assign obi_r_chans_sub[1].obi_rdata = s1_obi_rdata_i;
     assign obi_r_chans_sub[1].obi_rerr = s1_obi_rerr_i;
 
-    localparam int NoMAPS  = 2; 
-    localparam int SUB_WIDTH = $clog2(SUBORDINATES);
-    obi_pkg::addr_map address_map [NoMAPS];
-    assign address_map[0] = '{idx: SUB_WIDTH'('d0),base: 32'h0000_0000,mask: 32'h4000_0000};
-    assign address_map[1] = '{idx: SUB_WIDTH'('d1),base: 32'h4000_0000,mask: 32'h4000_0000};
-
-    
     obi_xbar #(
-        32,
-        32,
-        MANAGERS,
-        SUBORDINATES,
-        SR_FIFO_DEPTH,
-        ID_WIDTH,
-        USE_ID_FOR_ROUTING,
-        MR_FIFO_DEPTH,
-        NoMAPS,
-        Connectivity
+        .XbarCfg(xbar_cfg),
+        .ObiCfg(obi_cfg),
+
+        .obi_a_t(obi_a),
+        .obi_r_t(obi_r),
+        .addr_map_t(addr_map),
+
+        .CONNECTIVITY(Connectivity)
     ) xbar_param (
         .clk_i(clk_i),
         .rstn_i(rstn_i),

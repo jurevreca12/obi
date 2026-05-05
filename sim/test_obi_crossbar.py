@@ -521,8 +521,8 @@ async def linear_write_seq(
     data: list[int] | None = None
 ) -> None:
     for i, tup in enumerate(zip(addresses, data)):
-        ctx.log.info(data)
-        ctx.log.info(tup)
+        #ctx.log.info(data)
+        #ctx.log.info(tup)
         addr, value = tup
         async with ctx.lock(request_driver):
             request_driver.enqueue(
@@ -987,8 +987,8 @@ async def test4_0_3m_2s_r(
             raise e
         
 @ObiXbarTB.testcase(timeout=800000)
-@ObiXbarTB.parameter("transactions", int, 20)
-@ObiXbarTB.parameter("repeat", int, 1)
+@ObiXbarTB.parameter("transactions", int, 300)
+@ObiXbarTB.parameter("repeat", int, 5)
 @ObiXbarTB.parameter("start_address_s0", int, int("0000_0000", 16))
 @ObiXbarTB.parameter("start_address_s1", int, int("4000_0000", 16))
 async def test4_1_3m_2s_w(
@@ -1000,16 +1000,16 @@ async def test4_1_3m_2s_w(
     start_address_s1
 
 ): 
-    tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
-    tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
-    tb.m2_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,8))
+    tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,15))
+    tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,15))
+    tb.m2_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,15))
 
-    tb.s0_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,3))
-    tb.s1_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,3))
+    tb.s0_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,5))
+    tb.s1_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,5))
         
 
-    tb.master_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,5))
-    tb.slave_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
+    tb.master_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,10))
+    tb.slave_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,5))
     
     for i in range(repeat):
         test_mem = gen_memory_data(start_address_s0, range(1, int(transactions*2+1)))
@@ -1018,9 +1018,11 @@ async def test4_1_3m_2s_w(
         address_sequence = tb.gen_linear_address_seq(start_address_s0, range(0, int(transactions)*4, 4))
         address_sequence.extend(tb.gen_linear_address_seq(start_address_s1, range(0, (int(transactions)*4), 4)))
 
+        address_sequence2 = tb.gen_linear_address_seq(start_address_s1, range(0, int(transactions)*4, 4))
+
         data = tb.gen_linear_data_seq(0, transactions)
 
-        tb.random.shuffle(address_sequence)
+        #tb.random.shuffle(address_sequence)
         m0 = tb.schedule(
             linear_write_seq(
                 request_driver=tb.ifu_mapped_request_driver,
@@ -1034,7 +1036,7 @@ async def test4_1_3m_2s_w(
                 data=data
             )
         )
-        tb.random.shuffle(address_sequence)
+        #tb.random.shuffle(address_sequence)
         m1 = tb.schedule(
             linear_write_seq(
                 request_driver=tb.lsu_mapped_request_driver,
@@ -1057,7 +1059,7 @@ async def test4_1_3m_2s_w(
                 response_backpressure_driver=tb.m2_mapped_response_backpressure_driver,
                 strb=2,
                 tb=tb,
-                addresses=tb.gen_linear_address_seq(start_address_s1, range(0, (transactions*4), 4)),
+                addresses=address_sequence2,
                 data=data
             )
         )

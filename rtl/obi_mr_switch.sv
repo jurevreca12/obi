@@ -1,42 +1,44 @@
-import obi_pkg::obi_a;
-import obi_pkg::obi_r;
 
 // OBI Manager-Router Switch
 module obi_mr_switch #(
-    parameter int SUBORDINATES = 8,
-    parameter int ID_WIDTH = 32
+    parameter type  obi_a_t,
+    parameter type  obi_r_t,
+
+    parameter int   SUBORDINATES = 8,
+    parameter int   ID_WIDTH = 32,
+    parameter bit   USE_ID_FOR_ROUTING = '0
 )
 (
 // OBI A channel, Manager-Router -OBI_A-> Switch   
-    input obi_pkg::obi_a obi_a_i,
+    input   obi_a_t   obi_a_i,
 // OBI agnt signal, Manager-Router <-OBI_A- Switch 
-    output logic obi_agnt_o,
+    output  logic   obi_agnt_o,
 
 // OBI R channel, Manager-Router <-OBI_R- Switch 
-    output obi_pkg::obi_r obi_r_o,
+    output  obi_r_t   obi_r_o,
 // OBI rready signal, Manager-Router -OBI_R-> Switch 
-    input logic obi_rready_i,
+    input   logic   obi_rready_i,
 
 // OBI A channels, Switch -OBI_A-> Subordinate-Router
-    output obi_pkg::obi_a [SUBORDINATES-1:0] obi_a_channels_o,
+    output  obi_a_t   [SUBORDINATES-1:0]  obi_a_channels_o,
 // OBI agnt signals, Switch <-OBI_A- Subordinate-Router
-    input logic [SUBORDINATES-1:0] obi_agnt_array_i,
+    input   logic   [SUBORDINATES-1:0]  obi_agnt_array_i,
 
 // OBI R channels, Switch <-OBI_A- Subordinate-Router
-    input obi_pkg::obi_r [SUBORDINATES-1:0] obi_r_channels_i,
+    input   obi_r_t   [SUBORDINATES-1:0]  obi_r_channels_i,
 // OBI rready signals, Switch -OBI_A-> Subordinate-Router
-    output logic [SUBORDINATES-1:0] obi_rready_array_o,
+    output  logic   [SUBORDINATES-1:0]  obi_rready_array_o,
     
 
 // OBI A decoder signals
-    input   logic [$clog2(SUBORDINATES)-1:0]    obi_a_sel_i,
+    input   logic   [$clog2(SUBORDINATES)-1:0]  obi_a_sel_i,
     input   logic                               address_map_err_i,
 
 // OBI R decoder signals
-    input   logic [SUBORDINATES-1:0] obi_r_sel_i,
+    input   logic   [SUBORDINATES-1:0]  obi_r_sel_i,
 
-    output  logic                    set_next_o,
-    output  logic [ID_WIDTH-1:0]     rid_array_o[SUBORDINATES]
+    output  logic                       set_next_o,
+    output  logic   [ID_WIDTH-1:0]      rid_array_o [SUBORDINATES]
    
 );
 
@@ -58,7 +60,7 @@ module obi_mr_switch #(
         for (int j = 0; j<SUBORDINATES; j++) begin
                     rid_array_o[j] = obi_r_channels_i[j].obi_rid;
                     if (obi_r_sel_i == (1 << j)) begin
-                        // Defualt value of all channels in array is 0, so starting id's have to start from 1
+                        // Default value of all channels in array is 0, so starting id's have to start from 1
                         obi_r_o = obi_r_channels_i[j]; 
                         obi_rready_array_o[j] = obi_rready_i;
                     end else begin
@@ -68,11 +70,13 @@ module obi_mr_switch #(
     end
 
 // Logic for generating r-decoder set_next id signal
-    always_comb begin
-        if (obi_r_o.obi_rvalid && obi_rready_i) begin
-            set_next_o = 1'b1;
-        end else begin
-            set_next_o = '0;
+    if (USE_ID_FOR_ROUTING) begin : gen_set_next
+        always_comb begin
+            if (obi_r_o.obi_rvalid && obi_rready_i) begin
+                set_next_o = 1'b1;
+            end else begin
+                set_next_o = '0;
+            end
         end
     end
 

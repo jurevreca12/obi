@@ -1,33 +1,33 @@
 module fifo #(
-    parameter int DEPTH=8,
-    parameter int WIDTH=32 
+    parameter type  DTYPE = logic,
+    parameter int   DEPTH = 8
 ) (
-    input logic clk_i,
-    input logic rstn_i,
+    input   logic   clk_i,
+    input   logic   rstn_i,
 
-    input logic                 wr_en_i,
-    input logic                 rd_en_i,
-    input logic [WIDTH-1:0]     w_data_i,
-    output logic [WIDTH-1:0]    r_data_o,
-    output logic                full_o,
-    output logic                empty_o
-    
+    input   logic   wr_en_i,
+    input   logic   rd_en_i,
+    input   DTYPE   w_data_i,
+
+    output  DTYPE   r_data_o,
+    output  logic   full_o,
+    output  logic   empty_o
 );
 
 reg [$clog2(DEPTH)-1:0] wr_ptr;
 reg [$clog2(DEPTH)-1:0] rd_ptr;
 
-reg [WIDTH-1:0] fifo_storage[DEPTH];
+reg [$bits(DTYPE)-1:0]  fifo_storage [DEPTH];
 
 reg rd_last;
 
-assign full_o = (rd_ptr == wr_ptr) && !rd_last;
-assign empty_o = (rd_ptr == wr_ptr) && rd_last;
+assign  full_o  = (rd_ptr == wr_ptr) && !rd_last;
+assign  empty_o = (rd_ptr == wr_ptr) && rd_last;
 
-assign r_data_o = fifo_storage[rd_ptr];
+assign  r_data_o    = fifo_storage [rd_ptr];
 
 // FIFO write
-always_ff @(posedge clk_i ) begin
+always_ff @(posedge clk_i) begin
     if (~rstn_i) begin
         wr_ptr <= '0;
     end else begin

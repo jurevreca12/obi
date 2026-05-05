@@ -1,13 +1,55 @@
 package obi_pkg;
     
-    parameter int ADDR_WIDTH = 32;
-    parameter int DATA_WIDTH = 32;
-    parameter int NBytes = DATA_WIDTH / 8;
-    parameter int MANAGERS = 4;
-    parameter int FIFO_DEPTH = 1024;
-    parameter int ID_WIDTH = $clog2(FIFO_DEPTH * SUBORDINATES)+1;
-    parameter int SUBORDINATES = 2;
+// Xbar config
+    typedef struct packed {
+        int unsigned Managers;
+        int unsigned Subordinates;
+        bit unsigned UseSrFifo;
+        //bit unsigned UseSrFifoMask;
+        //bit unsigned Connectivity; // Connectivity matrix defines connections between Manager-Routers and Subordinate-Routers
+        int unsigned NoMaps;
+    } xbar_cfg;
 
+    function automatic xbar_cfg xbar_default_cfg(
+        int unsigned Managers,
+        int unsigned Subordinates 
+    );
+        xbar_default_cfg = '{
+            Managers: Managers,
+            Subordinates: Subordinates,
+            UseSrFifo: '0,
+            //UseSrFifoMask: Subordinates'('0),
+            //Connectivity: Subordinates*Managers'('1),
+            NoMaps: Subordinates
+        };
+    endfunction
+    
+// Obi config
+    typedef struct packed {
+        int unsigned AddrWidth;
+        int unsigned DataWidth;
+        int unsigned IdWidth;
+        bit unsigned UseIdForRouting; // if UseIdForRouting = 1 => (IdWidth has to be >$clog2(SrFifoDepth*Subordinates))
+        int unsigned MrFifoDepth;
+        int unsigned SrFifoDepth;
+    } obi_cfg;
+
+    function automatic obi_cfg obi_default_cfg( 
+        int unsigned AddrWidth, 
+        int unsigned DataWidth,
+        int unsigned IdWidth
+    );
+        obi_default_cfg = '{
+            AddrWidth: AddrWidth,
+            DataWidth: DataWidth,
+            IdWidth: IdWidth,
+            UseIdForRouting: '0, 
+            MrFifoDepth: int'($pow(2,IdWidth)),
+            SrFifoDepth: int'($pow(2,IdWidth))
+        };
+    endfunction
+
+/*
 
     typedef struct packed{
         logic                           obi_areq;
@@ -18,7 +60,6 @@ package obi_pkg;
         logic [ID_WIDTH-1:0]            obi_aid;
         logic [$clog2(MANAGERS)-1:0]    obi_mid;
     } obi_a;
-
 
     typedef struct packed{
         logic                    obi_rvalid;
@@ -33,6 +74,7 @@ package obi_pkg;
         logic [ADDR_WIDTH-1:0]              mask;
     } addr_map;
 
+*/
 
 endpackage
 

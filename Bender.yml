@@ -24,6 +24,7 @@ sources:
     - rtl/mapped2obi.sv
     - rtl/obi_ram.sv
     - rtl/linear_cnt.sv
+    - rtl/obi_typedef.svh
     
     - target: sim
       files:
