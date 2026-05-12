@@ -10,14 +10,9 @@ sources:
     - rtl/obi_pkg.sv
     - rtl/lf_lfsr_prng.sv
     - rtl/fifo.sv
-    - rtl/obi_a_decoder.sv
-    - rtl/obi_a_if.sv
-    - rtl/obi_r_if.sv
     - rtl/obi_xbar.sv
     - rtl/obi-gpio.sv
-    - rtl/obi_mr_switch.sv
     - rtl/obi_manager_router.sv
-    - rtl/obi_r_decoder.sv
     - rtl/obi-timer.sv
     - rtl/obi_uart.sv
     - rtl/obi_subordinate_router.sv
@@ -25,6 +20,7 @@ sources:
     - rtl/obi_ram.sv
     - rtl/linear_cnt.sv
     - rtl/obi_typedef.svh
+    - rtl/arbiter.sv
     
     - target: sim
       files:

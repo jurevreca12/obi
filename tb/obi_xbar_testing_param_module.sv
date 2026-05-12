@@ -66,12 +66,14 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
     output logic [NBytes-1:0]               s0_obi_abe_o,
     output logic [DATA_WIDTH-1:0]           s0_obi_awdata_o,
     output logic                            s0_obi_areq_o,
+    output obi_sub_id_t                     s0_obi_aid_o,
     input  logic                            s0_obi_agnt_i,
 
     output logic                            s0_obi_rready_o,
     input  logic                            s0_obi_rvalid_i,
     input  logic [DATA_WIDTH-1:0]           s0_obi_rdata_i,
     input  logic                            s0_obi_rerr_i,
+    input  obi_sub_id_t                     s0_obi_rid_i,
 
 // S1
     output logic [ADDR_WIDTH-1:0]           s1_obi_aadr_o,
@@ -79,12 +81,14 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
     output logic [NBytes-1:0]               s1_obi_abe_o,
     output logic [DATA_WIDTH-1:0]           s1_obi_awdata_o,
     output logic                            s1_obi_areq_o,
+    output obi_sub_id_t                     s1_obi_aid_o,
     input  logic                            s1_obi_agnt_i,
 
     output logic                            s1_obi_rready_o,
     input  logic                            s1_obi_rvalid_i,
     input  logic [DATA_WIDTH-1:0]           s1_obi_rdata_i,
-    input  logic                            s1_obi_rerr_i
+    input  logic                            s1_obi_rerr_i,
+    input  obi_sub_id_t                     s1_obi_rid_i
 
 );
     
@@ -97,18 +101,38 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
     localparam bit USE_ID_FOR_ROUTING = '0;
     localparam int MR_FIFO_DEPTH = 1024;
     //localparam int ID_WIDTH = $clog2(SR_FIFO_DEPTH * SUBORDINATES)+1;
-    localparam int ID_WIDTH = 4;
+    localparam int ID_WIDTH = 10;
     localparam int NBytes = DATA_WIDTH / 8;
     //localparam bit [SUBORDINATES-1:0] [MANAGERS-1:0] Connectivity = {{4'b0111}, {4'b0011}};
     
 
-    localparam obi_pkg::xbar_cfg xbar_cfg = obi_pkg::xbar_default_cfg(MANAGERS, SUBORDINATES);
+    //localparam obi_pkg::xbar_cfg_t xbar_cfg = obi_pkg::xbar_id_routing_cfg(MANAGERS, SUBORDINATES, ADDR_WIDTH, DATA_WIDTH, ID_WIDTH);
+    localparam obi_pkg::xbar_cfg_t xbar_cfg = obi_pkg::xbar_default_cfg(MANAGERS, SUBORDINATES, ADDR_WIDTH, DATA_WIDTH, ID_WIDTH);
 
-    localparam obi_pkg::obi_cfg obi_cfg = obi_pkg::obi_default_cfg(ADDR_WIDTH, DATA_WIDTH, ID_WIDTH);
+    localparam obi_pkg::obi_if_type_e obi_manager = MANAGER;
 
+    localparam obi_pkg::obi_if_type_e obi_subordinate = SUBORDINATE;
+
+
+    //localparam obi_pkg::obi_cfg obi_cfg = obi_pkg::obi_default_cfg(ADDR_WIDTH, DATA_WIDTH, ID_WIDTH);
+
+    typedef struct packed {
+        logic [xbar_cfg.IdWidth-1:0]              obi_aid;
+        logic [$clog2(xbar_cfg.Managers)-1:0]    obi_mid;
+    } obi_sub_id;
+
+    localparam type obi_sub_id_t = obi_sub_id;
+
+    /*
     `TYPEDEF_OBI_A_CHAN(obi_a, ADDR_WIDTH, DATA_WIDTH, ID_WIDTH, MANAGERS);
 
     `TYPEDEF_OBI_R_CHAN(obi_r, DATA_WIDTH, ID_WIDTH);
+    */
+
+    `TYPEDEF_OBI_CHANS(mgr_obi_a, mgr_obi_r, obi_manager, xbar_cfg);
+
+    `TYPEDEF_OBI_CHANS(sub_obi_a, sub_obi_r, obi_subordinate, xbar_cfg);
+
 
     `TYPEDEF_XBAR_ADDR_MAP(addr_map, ADDR_WIDTH, SUBORDINATES);
 
@@ -118,7 +142,7 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
 
     //assign Connectivity = {{4'b0111}, {4'b0011}};
 
-    //localparam int NoMAPS  = 2; 
+    //localparam int NoMAPS  = 2;
     localparam int SUB_WIDTH = $clog2(xbar_cfg.Subordinates);
     addr_map address_map [xbar_cfg.NoMaps];
     assign address_map[0] = '{idx: SUB_WIDTH'('d0),base: 32'h0000_0000,mask: 32'h4000_0000};
@@ -129,7 +153,7 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
 
 
 
-    obi_a obi_a_chans_mgr [MANAGERS];
+    mgr_obi_a obi_a_chans_mgr [MANAGERS];
     logic obi_agnt_signals_mgr [MANAGERS];
     
     // IFU
@@ -160,7 +184,7 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
     assign obi_a_chans_mgr[2].obi_awdata = m2_req_data_i;
     assign obi_a_chans_mgr[2].obi_aid = m2_req_id_i;
        
-    obi_r obi_r_chans_mgr [MANAGERS];
+    mgr_obi_r obi_r_chans_mgr [MANAGERS];
     logic obi_rready_signals_mgr [MANAGERS];
 
     // IFU
@@ -186,7 +210,7 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
     assign m2_rsp_id_o = obi_r_chans_mgr[2].obi_rid;
     
 
-    obi_a obi_a_chans_sub [SUBORDINATES];
+    sub_obi_a obi_a_chans_sub [SUBORDINATES];
     logic obi_agnt_signals_sub [SUBORDINATES];
 
     // S0
@@ -196,6 +220,7 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
     assign s0_obi_awe_o = obi_a_chans_sub[0].obi_awe;
     assign s0_obi_abe_o = obi_a_chans_sub[0].obi_abe;
     assign s0_obi_awdata_o = obi_a_chans_sub[0].obi_awdata;
+    assign s0_obi_aid_o = obi_a_chans_sub[0].obi_aid;
 
     // S1
     assign obi_agnt_signals_sub[1] = s1_obi_agnt_i;
@@ -204,9 +229,10 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
     assign s1_obi_awe_o = obi_a_chans_sub[1].obi_awe;
     assign s1_obi_abe_o = obi_a_chans_sub[1].obi_abe;
     assign s1_obi_awdata_o = obi_a_chans_sub[1].obi_awdata;
+    assign s1_obi_aid_o = obi_a_chans_sub[1].obi_aid;
 
 
-    obi_r obi_r_chans_sub [SUBORDINATES];
+    sub_obi_r obi_r_chans_sub [SUBORDINATES];
     logic obi_rready_signals_sub [SUBORDINATES];
 
     // S0
@@ -214,19 +240,25 @@ module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this m
     assign obi_r_chans_sub[0].obi_rvalid = s0_obi_rvalid_i;
     assign obi_r_chans_sub[0].obi_rdata = s0_obi_rdata_i;
     assign obi_r_chans_sub[0].obi_rerr = s0_obi_rerr_i;
+    assign obi_r_chans_sub[0].obi_rid = s0_obi_rid_i;
 
     // S1
     assign s1_obi_rready_o = obi_rready_signals_sub[1];
     assign obi_r_chans_sub[1].obi_rvalid = s1_obi_rvalid_i;
     assign obi_r_chans_sub[1].obi_rdata = s1_obi_rdata_i;
     assign obi_r_chans_sub[1].obi_rerr = s1_obi_rerr_i;
+    assign obi_r_chans_sub[1].obi_rid = s1_obi_rid_i;
 
     obi_xbar #(
         .XbarCfg(xbar_cfg),
-        .ObiCfg(obi_cfg),
+        //.ObiCfg(obi_cfg),
 
-        .obi_a_t(obi_a),
-        .obi_r_t(obi_r),
+        //.obi_a_t(obi_a),
+        //.obi_r_t(obi_r),
+        .mgr_obi_a_t(mgr_obi_a),
+        .mgr_obi_r_t(mgr_obi_r),
+        .sub_obi_a_t(sub_obi_a),
+        .sub_obi_r_t(sub_obi_r),
         .addr_map_t(addr_map),
 
         .CONNECTIVITY(Connectivity)

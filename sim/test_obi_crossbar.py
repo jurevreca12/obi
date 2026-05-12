@@ -58,7 +58,7 @@ class ObiXbarTB(BaseBench):
 
         self.subordinates = 2
         self.fifo_width = 1024
-        self.id_width = 4 #math.log2(self.fifo_width * self.subordinates) +1 
+        self.id_width = 10 #math.log2(self.fifo_width * self.subordinates) +1 
 
         self.mmio_device = Memory_device(self)
 
@@ -73,8 +73,8 @@ class ObiXbarTB(BaseBench):
         self.master_delay_func = partial(ObiXbarTB.const_backpressure, cycles=0)
         self.slave_delay_func = partial(ObiXbarTB.const_backpressure, cycles=0)
 
-        self.response_window =2048
-        self.request_window = 2048
+        self.response_window =1
+        self.request_window = 1
     # ---------- IO ----------
 
         # IFU MAPPED io
@@ -289,11 +289,10 @@ class ObiXbarTB(BaseBench):
                         valid_delay=self.slave_delay_func(self),
                         obi_rdata = read,
                         obi_rerr=err,
-                        #obi_rid=obj.obi_aid,
+                        obi_rid=obj.obi_aid,
                         obi_mid=obj.obi_mid
                     )
                 )
-                self.log.info(msg=f"Driving READ response on s0")
             case obi.ObiAccess.WRITE: # On WRITE, write the data to address in mmio device
                 err = self.mmio_device.write(obj.obi_aadr, obj.obi_awdata, obj.obi_abe)
                 driver_name.enqueue(# Drive the write response transaction signals (error)
@@ -301,11 +300,10 @@ class ObiXbarTB(BaseBench):
                         valid_delay=self.slave_delay_func(self),
                         obi_rdata = 0,
                         obi_rerr=err,
-                        #obi_rid=obj.obi_aid,
+                        obi_rid=obj.obi_aid,
                         obi_mid=obj.obi_mid
                     )
                 )
-                self.log.info(msg=f"Driving WRITE response on s0")
 
     
     # Backpressure drivers drive methods
@@ -463,7 +461,7 @@ async def linear_read_seq(
             driver.enqueue(
                 MappedRequest(
                     cycles=0,
-                    ident=(i%(int(math.pow(2, tb.id_width)-1)))+1, # mod (ID_WIDTH-1),
+                    ident=(i%(int(math.pow(2, tb.id_width)))), # mod (ID_WIDTH),
                     address=addr,
                     mode=MappedAccess.READ,
                 ),
@@ -495,7 +493,7 @@ async def linear_read_seq_bp(
             request_driver.enqueue(
                 MappedRequest(
                     cycles=tb.master_delay_func(tb),
-                    ident=(i%(int(math.pow(2, tb.id_width)-1)))+1, # mod (ID_WIDTH-1)
+                    ident=(i%(int(math.pow(2, tb.id_width)))), # mod (ID_WIDTH)
                     address=addr,
                     mode=MappedAccess.READ,
                     strobe=strb
@@ -534,7 +532,7 @@ async def linear_write_seq(
             request_driver.enqueue(
                 MappedRequest(
                     cycles=tb.master_delay_func(tb),
-                    ident=(i%(int(math.pow(2, tb.id_width)-1)))+1, # mod (ID_WIDTH-1)
+                    ident=(i%(int(math.pow(2, tb.id_width)))), # mod (ID_WIDTH)
                     address=addr,
                     mode=MappedAccess.WRITE,
                     data=value,
@@ -572,7 +570,7 @@ async def random_read_seq_bp(
             request_driver.enqueue(
                 MappedRequest(
                     cycles=tb.master_delay_func(tb),
-                    ident=(i%(int(math.pow(2, tb.id_width)-1)))+1, # mod (ID_WIDTH-1),
+                    ident=(i%(int(math.pow(2, tb.id_width)))), # mod (ID_WIDTH-),
                     address=addr,
                     mode=MappedAccess.READ,
                     strobe=strb
@@ -611,7 +609,7 @@ async def random_write_seq(
             request_driver.enqueue(
                 MappedRequest(
                     cycles=tb.master_delay_func(tb),
-                    ident=(i%(int(math.pow(2, tb.id_width)-1)))+1, # mod (ID_WIDTH-1),
+                    ident=(i%(int(math.pow(2, tb.id_width)))), # mod (ID_WIDTH),
                     address=addr,
                     mode=MappedAccess.WRITE,
                     data=value,
@@ -632,7 +630,7 @@ async def random_write_seq(
 
 # ---------- TEST CASES ----------
 
-@ObiXbarTB.testcase()
+@ObiXbarTB.testcase(timeout=10000)
 @ObiXbarTB.parameter("repeat", int, 10)
 async def ifu_linear_read_test1_0(
     tb: ObiXbarTB,
@@ -653,7 +651,7 @@ async def ifu_linear_read_test1_0(
     )
 
 @ObiXbarTB.testcase()
-@ObiXbarTB.parameter("repeat", int, 10)
+@ObiXbarTB.parameter("repeat", int, 100)
 @ObiXbarTB.parameter("start_address", int, int("0000_0000", 16))
 async def lsu_linear_read_test1_1(
     tb: ObiXbarTB,
@@ -676,7 +674,7 @@ async def lsu_linear_read_test1_1(
     )
 
 @ObiXbarTB.testcase()
-@ObiXbarTB.parameter("repeat", int, 10)
+@ObiXbarTB.parameter("repeat", int, 1500)
 @ObiXbarTB.parameter("start_address", int, int("0000_0000", 16))
 async def ifu_lsu_linear_read_test2_0(
     tb: ObiXbarTB,
@@ -765,7 +763,7 @@ async def ifu_lsu_linear_read_bp_test2_1(
 
 
 
-@ObiXbarTB.testcase(timeout=8000000)
+@ObiXbarTB.testcase(timeout=500000)
 @ObiXbarTB.parameter("repeat", int, 100*30)
 @ObiXbarTB.parameter("start_address", int, int("4000_0000", 16))
 async def ifu_lsu_m2_linear_read_bp_test3_0(
@@ -830,8 +828,8 @@ async def ifu_lsu_m2_linear_read_bp_test3_0(
 
 
 @ObiXbarTB.testcase(timeout=800000)
-@ObiXbarTB.parameter("transactions", int, 333)
-@ObiXbarTB.parameter("repeat", int, 5)
+@ObiXbarTB.parameter("transactions", int, 277)
+@ObiXbarTB.parameter("repeat", int, 12)
 @ObiXbarTB.parameter("start_address", int, int("4000_0000", 16))
 async def ifu_lsu_m2_linear_read_bp_test3_1(
     tb: ObiXbarTB,
@@ -840,14 +838,14 @@ async def ifu_lsu_m2_linear_read_bp_test3_1(
     repeat,
     start_address
 ):     
-    tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
-    tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
-    tb.m2_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
+    tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,5))
+    tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,5))
+    tb.m2_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,5))
 
-    tb.s1_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,50))
+    tb.s1_request_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
         
 
-    tb.master_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,150))
+    tb.master_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,10))
     tb.slave_delay_func = partial(ObiXbarTB.random_backpressure, data=range(0,1))
     
     for i in range(repeat):
@@ -909,8 +907,8 @@ async def ifu_lsu_m2_linear_read_bp_test3_1(
 
 
 @ObiXbarTB.testcase(timeout=800000)
-@ObiXbarTB.parameter("transactions", int, 150)
-@ObiXbarTB.parameter("repeat", int, 8)
+@ObiXbarTB.parameter("transactions", int, 555)
+@ObiXbarTB.parameter("repeat", int, 20)
 @ObiXbarTB.parameter("start_address_s0", int, int("0000_0000", 16))
 @ObiXbarTB.parameter("start_address_s1", int, int("4000_0000", 16))
 async def test4_0_3m_2s_r(
@@ -922,6 +920,7 @@ async def test4_0_3m_2s_r(
     start_address_s1
 
 ): 
+    tb.random.seed(2)
     tb.ifu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,7))
     tb.lsu_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,4))
     tb.m2_response_backpressure_func = partial(ObiXbarTB.random_backpressure, data=range(0,9))
@@ -980,7 +979,7 @@ async def test4_0_3m_2s_r(
         )
 
         await m0,m1,m2
-        transactions = int(transactions + (transactions/2))
+        #transactions = int(transactions + (transactions/2))
         try:
             await ClockCycles(tb.clk, 100)
             await tb.scoreboard.drain()

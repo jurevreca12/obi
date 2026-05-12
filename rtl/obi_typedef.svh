@@ -1,23 +1,27 @@
 
+// OBI channels structs
+`define TYPEDEF_OBI_CHANS(obi_a, obi_r, TYPE, CFG)                  \
+    `TYPEDEF_OBI_A_CHAN(obi_a, obi_pkg::IfTypeXbarCfg(CFG, TYPE));  \
+    `TYPEDEF_OBI_R_CHAN(obi_r, obi_pkg::IfTypeXbarCfg(CFG, TYPE));  \
+
 // OBI A channel struct
-`define TYPEDEF_OBI_A_CHAN(obi_a, ADDR_WIDTH, DATA_WIDTH, ID_WIDTH, MANAGERS)   \
-  typedef struct packed{                                                        \
-        logic                           obi_areq;                               \
-        logic [ADDR_WIDTH-1:0]          obi_aadr;                               \
-        logic                           obi_awe;                                \
-        logic [DATA_WIDTH/8-1:0]        obi_abe;                                \
-        logic [DATA_WIDTH-1:0]          obi_awdata;                             \
-        logic [ID_WIDTH-1:0]            obi_aid;                                \
-        logic [$clog2(MANAGERS)-1:0]    obi_mid;                                \
-    } obi_a;            
+`define TYPEDEF_OBI_A_CHAN(obi_a, CFG)   \
+  typedef struct packed{                                                            \
+        logic                               obi_areq;                               \
+        logic [CFG.AddrWidth-1:0]           obi_aadr;                               \
+        logic                               obi_awe;                                \
+        logic [CFG.DataWidth/8-1:0]         obi_abe;                                \
+        logic [CFG.DataWidth-1:0]           obi_awdata;                             \
+        logic [CFG.IdWidth-1:0]             obi_aid;                                \
+    } obi_a;
 
 // OBI R channel struct
-`define TYPEDEF_OBI_R_CHAN(obi_r, DATA_WIDTH, ID_WIDTH) \
-  typedef struct packed{                                \
-        logic                    obi_rvalid;            \
-        logic                    obi_rerr;              \
-        logic [DATA_WIDTH-1:0]   obi_rdata;             \
-        logic [ID_WIDTH-1:0]     obi_rid;               \
+`define TYPEDEF_OBI_R_CHAN(obi_r, CFG) \
+  typedef struct packed{                                    \
+        logic                       obi_rvalid;            \
+        logic                       obi_rerr;              \
+        logic [CFG.DataWidth-1:0]   obi_rdata;             \
+        logic [CFG.IdWidth-1:0]     obi_rid;               \
     } obi_r;
 
 // XBAR address map struct
