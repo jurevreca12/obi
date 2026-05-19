@@ -11,13 +11,12 @@ sources:
     - rtl/lf_lfsr_prng.sv
     - rtl/fifo.sv
     - rtl/obi_xbar.sv
-    - rtl/obi-gpio.sv
+    - rtl/obi_gpio.sv
     - rtl/obi_manager_router.sv
-    - rtl/obi-timer.sv
+    - rtl/obi_timer.sv
     - rtl/obi_uart.sv
     - rtl/obi_subordinate_router.sv
     - rtl/mapped2obi.sv
-    - rtl/obi_ram.sv
     - rtl/linear_cnt.sv
     - rtl/obi_typedef.svh
     - rtl/arbiter.sv

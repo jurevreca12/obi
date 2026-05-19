@@ -4,9 +4,6 @@ module mapped2obi #(
   parameter  int IDLEN = 4,
   localparam int NBytes = DATA_WIDTH / 8
 )(
-  input  logic                   clk_i,
-  input  logic                   rstn_i,
-
   input  logic [IDLEN-1:0]       mapped_req_id_i,
   input  logic [ADDR_WIDTH-1:0]  mapped_req_addr_i,
   input  logic [DATA_WIDTH-1:0]  mapped_req_data_i,
