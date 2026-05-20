@@ -12,7 +12,8 @@ module obi_xbar #(
     parameter type                  addr_map_t,
 
     parameter bit unsigned [XbarCfg.Subordinates-1:0] [XbarCfg.Managers-1:0] CONNECTIVITY = '1,
-    parameter bit unsigned [XbarCfg.Subordinates-1:0] USE_SR_FIFO_MASK = '0,
+    parameter bit unsigned [XbarCfg.Subordinates-1:0] USE_SR_FIFO_MASK = 2'b01,
+    parameter int unsigned SR_FIFO_DEPTHS [XbarCfg.Subordinates] = {64, 64},
 
     localparam int NBytes = XbarCfg.DataWidth / 8
 )
@@ -115,7 +116,7 @@ module obi_xbar #(
 // Generate Subordinate-Routers with defined connections
     for (genvar i = 0; i<XbarCfg.Subordinates; i++) begin : gen_sr
         obi_subordinate_router #(
-            .XbarCfg            (obi_pkg::SubXbarCfg(XbarCfg, USE_SR_FIFO_MASK[i])  ),
+            .XbarCfg            (obi_pkg::SubXbarCfg(XbarCfg, USE_SR_FIFO_MASK[i], SR_FIFO_DEPTHS[i])),
             .obi_a_t            (xbar_obi_a_t                                       ),
             .obi_r_t            (xbar_obi_r_t                                       ),
             .sub_obi_a_t        (sub_obi_a_t                                        ),

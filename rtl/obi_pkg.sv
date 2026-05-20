@@ -82,10 +82,12 @@ package obi_pkg;
 
     function automatic xbar_cfg_t SubXbarCfg(
         xbar_cfg_t XbarCfg,
-        bit unsigned UseSrFifo
+        bit unsigned UseSrFifo,
+        int unsigned SrFifoDepth
     );
         SubXbarCfg = XbarCfg;
         SubXbarCfg.UseSrFifo = UseSrFifo;
+        SubXbarCfg.SrFifoDepth = SrFifoDepth;
     endfunction;
 
 endpackage
