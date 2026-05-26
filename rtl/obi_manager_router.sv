@@ -10,7 +10,9 @@ module obi_manager_router #(
     parameter type              mgr_obi_r_t,
     parameter type              addr_map_t,
 
-    parameter bit [$clog2(XbarCfg.Managers)-1:0] MANAGER_ID = '0
+    parameter bit [$clog2(XbarCfg.Managers)-1:0] MANAGER_ID = '0,
+
+    localparam int SelWidth = $clog2(XbarCfg.Subordinates)
 )
 (
     input   logic   clk_i,
@@ -62,11 +64,11 @@ module obi_manager_router #(
     end
 
     // Select signals used for routing
-    logic   [$clog2(XbarCfg.Subordinates)-1:0]    obi_a_sel;
-    logic   [$clog2(XbarCfg.Subordinates)-1:0]    obi_r_sel;
+    logic   [SelWidth-1:0]    obi_a_sel;
+    logic   [SelWidth-1:0]    obi_r_sel;
     // Addr map
     logic   address_map_err;
-    // Outstanding id that is compared with rid
+    // Outstanding id that, can be aid value or idx of OBI chan
     logic   [XbarCfg.IdWidth-1:0]   outstanding_id;
     // Signal is high when a response was granted
     logic rsp_granted;
@@ -90,13 +92,19 @@ module obi_manager_router #(
     always_comb begin
         rsp_granted = '0;
         obi_r_sel   = '0;
-        for (int i=0; i<XbarCfg.Subordinates; i++) begin
-            if (obi_r_channels_i[i].obi_rvalid & (obi_r_channels_i[i].obi_rid == outstanding_id)) begin
+        if (XbarCfg.UseIdForRouting) begin
+            for (int i=0; i<XbarCfg.Subordinates; i++) begin
+                if (obi_r_channels_i[i].obi_rvalid & (obi_r_channels_i[i].obi_rid == outstanding_id)) begin
                     obi_r_sel   = i;
                     rsp_granted = '1;
                 end
+            end
+        end else if (~XbarCfg.UseIdForRouting) begin
+            obi_r_sel   = outstanding_id;
+            rsp_granted = '1;
         end
     end
+
 
     // OBI A channel routing
     always_comb begin
@@ -149,10 +157,10 @@ module obi_manager_router #(
 
         assign  id_wr_en        =   obi_a.obi_areq & obi_agnt_o;
         assign  id_rd_en        =   obi_r.obi_rvalid & obi_rready_i;
-        assign  id_data_in      =   obi_a.obi_aid;
+        assign  id_data_in      =   obi_a_sel;
 
         fifo #(
-            .DTYPE      (logic [XbarCfg.IdWidth-1:0] ),
+            .DTYPE      (logic [SelWidth-1:0] ),
             .DEPTH      (XbarCfg.MrFifoDepth         )
         ) id_fifo (
             .clk_i      (clk_i          ),

@@ -12,8 +12,8 @@ module obi_xbar #(
     parameter type                  addr_map_t,
 
     parameter bit unsigned [XbarCfg.Subordinates-1:0] [XbarCfg.Managers-1:0] CONNECTIVITY = '1,
-    parameter bit unsigned [XbarCfg.Subordinates-1:0] USE_SR_FIFO_MASK = 2'b01,
-    parameter int unsigned SR_FIFO_DEPTHS [XbarCfg.Subordinates] = {64, 64},
+    parameter bit unsigned [XbarCfg.Subordinates-1:0] USE_SR_FIFO_MASK = '0,
+    parameter int unsigned SR_FIFO_DEPTHS [XbarCfg.Subordinates] = '{default: '0},
 
     localparam int NBytes = XbarCfg.DataWidth / 8
 )
@@ -121,8 +121,8 @@ module obi_xbar #(
             .obi_r_t            (xbar_obi_r_t                                       ),
             .sub_obi_a_t        (sub_obi_a_t                                        ),
             .sub_obi_r_t        (sub_obi_r_t                                        ),
-            //.MANAGERS_CONS      ($countones(CONNECTIVITY[i]))     // TODO FIX something with this does not work
-            .MANAGERS_CONS      (XbarCfg.Managers                                   )
+            .MANAGERS_CONS      ($countones(CONNECTIVITY[i])                        )
+            //.MANAGERS_CONS      (XbarCfg.Managers                                   )
         ) i_subordinate_router (
             .clk_i              (clk_i                          ),
             .rstn_i             (rstn_i                         ),

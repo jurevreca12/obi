@@ -22,7 +22,8 @@ module arbiter #(
 
     logic   [PrnWidth-1:0]     prn; // The pseudo random number (PRN) generated
     logic                      lfsr_state_hold;
-    assign  lfsr_state_hold =  (valid_vector_i[granted_idx_o] == 0 || ready_i == 0);
+    //assign  lfsr_state_hold =  (valid_vector_i[granted_idx_o] == '0 || ready_i == '0);
+    assign  lfsr_state_hold =  (valid_vector_i == '0 || ready_i == '0);
      lf_lfsr_prng #(
         .LFSR_WIDTH (LFSR_WIDTH ),
         .SEED       (SEED),
@@ -84,6 +85,9 @@ module arbiter #(
         skip_covered_valid_v    = ((valid_vector_i & skip_mask) == valid_vector_i);
         if (ready_i) begin          // TODO could be a redundant condition
             for (int i = 0; i<NUM_PORTS; ++i) begin // Progress the round
+                if (int'(idx) >= NUM_PORTS) begin
+                    idx = prn[PrnWidth-1] ? (NUM_PORTS-1) : '0;   // Reset idx (overflow)
+                end
                 if (~granted_o) begin
                     valid   = valid_vector_i[idx] == '1;  // Check if request is valid
                     skip    = ~((prn_miss == '1 & skip_mask[idx] == '0) || prn_miss == '0 || skip_covered_valid_v);   // Check if request is to be skipped
@@ -92,11 +96,14 @@ module arbiter #(
                         granted_idx_o  = idx;  // Set active idx to the idx of the granted_o request
                     end else begin  // If request not granted or inactive
                         // Determine the direction of the round based on PRN's MSB value
+                        /*
                         if (int'(idx) >= NUM_PORTS) begin
                             idx = prn[PrnWidth-1] ? '1 : '0;   // Reset idx (overflow)
                         end else begin
                             idx = prn[PrnWidth-1] ? idx-1 : idx+1;
                         end
+                            */
+                        idx = prn[PrnWidth-1] ? idx-1 : idx+1;
                     end
                 end
             end

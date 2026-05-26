@@ -1,6 +1,6 @@
 module fifo #(
     parameter type  DTYPE = logic,  // Type of value the FIFO will hold
-    parameter int   DEPTH = 8       // Amount of values the FIFO can hold, has to be a power of 2 number
+    parameter int   DEPTH = 8       // Amount of values the FIFO can hold has to be a power of 2 number
 ) (
     input   logic   clk_i,
     input   logic   rstn_i,

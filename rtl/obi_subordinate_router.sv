@@ -46,7 +46,7 @@ module obi_subordinate_router #(
     // Type that is used to add/strip mid bits from aid/rid
     typedef struct packed {
         logic [XbarCfg.IdWidth-1:0]             obi_aid;
-        logic [$clog2(XbarCfg.Managers)-1:0]    obi_mid;
+        logic [XbarCfg.MidWidth-1:0]            obi_mid;
     } obi_sub_id_t;
 
     // Signal that selects the R channel of response transaction
@@ -58,7 +58,7 @@ module obi_subordinate_router #(
     // Signal that is active when arbitration succeded (request was granted)
     logic granted;
     // Signal that selects the A channel of request transaction
-    logic [$clog2(MANAGERS_CONS)-1:0] granted_idx;
+    logic [ManagersConsWidth-1:0] granted_idx;
 
     // Vector of OBI A channels obi_areq signal
     always_comb begin : assign_areq_vector
@@ -88,7 +88,7 @@ module obi_subordinate_router #(
         // Data type stored in id_fifo
         typedef struct packed {
             logic   [XbarCfg.IdWidth-1:0]           aid;
-            logic   [$clog2(XbarCfg.Managers)-1:0]  mid;
+            //logic   [$clog2(XbarCfg.Managers)-1:0]  mid;
             logic   [ManagersConsWidth-1:0]         rsp_sel;
         } id_data_t;
 
@@ -196,7 +196,7 @@ module obi_subordinate_router #(
                 req_data_in.awdata  = obi_a_channels_i[granted_idx].obi_awdata;
                 // Data to be written into the ID FIFO
                 id_data_in.aid      = obi_a_channels_i[granted_idx].obi_aid;
-                id_data_in.mid      = obi_a_channels_i[granted_idx].obi_mid;
+                //id_data_in.mid      = obi_a_channels_i[granted_idx].obi_mid;
                 id_data_in.rsp_sel  = granted_idx;
                 // Write enable
                 id_wr_en            = '1;
@@ -259,9 +259,11 @@ module obi_subordinate_router #(
     end
 
     if (~XbarCfg.UseSrFifo) begin : gen_comb_sr
+        localparam int MidWidth = XbarCfg.MidWidth;
+
         obi_sub_id_t id;
         assign  id      = obi_sub_id_t'(sub_obi_r.obi_rid);
-        assign  rsp_sel = id.obi_mid;
+        assign  rsp_sel = ManagersConsWidth'(id.obi_mid);
         assign  ready   = obi_agnt_i;
 
         // Transact arbitrated request
@@ -275,7 +277,8 @@ module obi_subordinate_router #(
                 sub_obi_a.obi_awe               = obi_a_channels_i[granted_idx].obi_awe;
                 sub_obi_a.obi_abe               = obi_a_channels_i[granted_idx].obi_abe;
                 sub_obi_a.obi_awdata            = obi_a_channels_i[granted_idx].obi_awdata;
-                sub_obi_a.obi_aid               = obi_sub_id_t'({obi_a_channels_i[granted_idx].obi_aid, obi_a_channels_i[granted_idx].obi_mid}); 
+                //sub_obi_a.obi_aid               = obi_sub_id_t'({obi_a_channels_i[granted_idx].obi_aid, obi_a_channels_i[granted_idx].obi_mid}); 
+                sub_obi_a.obi_aid               = obi_sub_id_t'({obi_a_channels_i[granted_idx].obi_aid, MidWidth'(granted_idx)}); 
             end
         end
 
