@@ -159,7 +159,7 @@ module obi_manager_router #(
         assign  id_rd_en        =   obi_r.obi_rvalid & obi_rready_i;
         assign  id_data_in      =   obi_a_sel;
 
-        fifo #(
+        fifo_lop #(
             .DTYPE      (logic [SelWidth-1:0] ),
             .DEPTH      (XbarCfg.MrFifoDepth         )
         ) id_fifo (

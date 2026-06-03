@@ -101,7 +101,7 @@ module obi_subordinate_router #(
         logic   id_fifo_full;
 
         // Instance of id_fifo
-        fifo #(
+        fifo_lop #(
             .DTYPE      (id_data_t            ),
             .DEPTH      (XbarCfg.SrFifoDepth )
         ) id_fifo (
@@ -133,7 +133,7 @@ module obi_subordinate_router #(
         logic       req_fifo_full;
 
         // Instance of request_fifo
-        fifo #(
+        fifo_lop #(
             .DTYPE      (req_data_t           ),
             .DEPTH      (XbarCfg.SrFifoDepth )
         ) request_fifo (
@@ -163,7 +163,7 @@ module obi_subordinate_router #(
         logic       rsp_fifo_full;
 
         // Instance of response_fifo
-        fifo #(
+        fifo_lop #(
             .DTYPE      (rsp_data_t          ),
             .DEPTH      (XbarCfg.SrFifoDepth )
         ) response_fifo (

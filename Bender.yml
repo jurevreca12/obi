@@ -12,17 +12,12 @@ export_include_dirs:
 sources:
     - rtl/obi_pkg.sv
     - rtl/lf_lfsr_prng.sv
-    - rtl/fifo.sv
+    - rtl/fifo_lop.sv
     - rtl/obi_xbar.sv
-    - rtl/obi_gpio.sv
     - rtl/obi_manager_router.sv
-    - rtl/obi_timer.sv
-    - rtl/obi_uart.sv
     - rtl/obi_subordinate_router.sv
-    - rtl/mapped2obi.sv
     - rtl/linear_cnt.sv
     - rtl/arbiter.sv
-    - rtl/obi_ram.sv
 
     - target: sim
       files:

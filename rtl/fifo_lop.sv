@@ -1,4 +1,4 @@
-module fifo #(
+module fifo_lop #(
     parameter type  DTYPE = logic,  // Type of value the FIFO will hold
     parameter int   DEPTH = 8       // Amount of values the FIFO can hold has to be a power of 2 number
 ) (
