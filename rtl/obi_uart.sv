@@ -1,193 +1,212 @@
-`define UART_CONF_OFF 7'h00
-`define UART_SPEED_OFF 7'h04
-`define UART_TX_OFF 7'h08
-
 module obi_uart #(
-    parameter OBI_ADDR_WIDTH = 32,
-    parameter OBI_DATA_WIDTH = 32
+    parameter integer ADDR_WIDTH = 32,
+    parameter integer DATA_WIDTH = 32
 ) (
-    // OBI SLAVE INTERFACE
-    //***************************************
-    input logic obi_clk_i,
-    input logic obi_rstn_i,
+    input logic clk_i,
+    input logic rstn_i,
 
-    // ADDRESS CHANNEL
-    input logic                         obi_req_i,
-    output  logic                       obi_gnt_o,
-    input logic [OBI_ADDR_WIDTH-1:0]    obi_addr_i,
-    input logic                         obi_we_i,
-    input logic [OBI_DATA_WIDTH-1:0]    obi_wdata_i,
-    input logic [               3:0]    obi_be_i,
+    input   logic                     obi_areq_i,
+    output  logic                     obi_agnt_o,
+    input   logic [ADDR_WIDTH-1:0]    obi_aaddr_i,
+    input   logic [DATA_WIDTH-1:0]    obi_awdata_i,
 
-    // RESPONSE CHANNEL
-    output logic     obi_rvalid_o,
-    input logic      obi_rready_i,
-    output logic    [OBI_DATA_WIDTH-1:0] obi_rdata_o,
-    output logic                       obi_err_o,
-    
-    // to fpga pins
-    output logic tx
+    input   logic                     obi_awe_i,
+    input   logic [DATA_WIDTH/8-1:0]  obi_abe_i,
+
+    output  logic                     obi_rvalid_o,
+    input   logic                     obi_rready_i,
+    output  logic [DATA_WIDTH-1:0]    obi_rdata_o,
+    output  logic                     obi_rerr_o,
+
+    // Output complete
+    output  logic                     tx_o
 );
-
     
-    logic latch_addr; // control signals to latch address and response data at the end of address and response phases respectively
+    localparam integer UartConfRegOffset = 0;
+    localparam integer UartSpeedRegOffset = 4;
+    localparam integer UartTxRegOffset = 8;
+    localparam integer UartStatusRegOffset = 12;
 
-    // slave FSM states
+    logic [DATA_WIDTH-1:0] uart_conf_reg;
+    logic [DATA_WIDTH-1:0] uart_speed_reg;
+    logic [DATA_WIDTH-1:0] uart_tx_reg;
+    logic [DATA_WIDTH-1:0] uart_status_reg;
+
+    logic tx_done;
+    logic tx_empty;
+
+    // OBI wrapper signals
     typedef enum logic {
         ADDR,
         RESP
     } state_t;
     state_t state, next_state;
 
-    always_ff @(posedge obi_clk_i) begin
-        if (!obi_rstn_i) begin
-            state <= ADDR;
-        end else begin
-            state <= next_state;
-        end
-    end
+    logic obi_a_fire;
+    logic obi_r_fire;
+    logic capture;
 
+
+    // Write interface signals
+    logic wr_en[2:0]; 
+    logic [DATA_WIDTH-1:0] write_data_mask;
+
+
+    // Read interface signals
+    logic rd_en;
+
+
+    // BEGIN: OBI wrapper
+    register  #(
+        .DTYPE(state_t),
+        .RESET_VALUE(ADDR)     
+    ) obi_fsm_state_reg
+        (
+        .clk(clk_i),
+        .rstn(rstn_i),
+        .ce(1'b1), // Always enable to capture the input state
+        .in(next_state),
+        .out(state)
+    );
+
+    assign obi_a_fire = obi_areq_i && obi_agnt_o;
+    assign obi_r_fire = obi_rready_i && obi_rvalid_o;
+
+    // State transition logic
     always_comb begin : OBI_SLAVE_next_state
         next_state = state;
-        latch_addr = 1'b0; // default value for latch_addr
         case (state)
             ADDR: begin
-                if (obi_gnt_o & obi_req_i) begin
+                if (obi_a_fire) begin // handshake for address phase, when there is a valid request and the slave is granted access to the bus, move to response phase
                     next_state = RESP;
-                    latch_addr = 1'b1; // latch address at the end of address phase
                 end
             end
             RESP: begin
-                if (obi_rvalid_o & obi_rready_i) begin
+                if (obi_r_fire) begin // handshake for response phase, when there is a valid response and the master is ready to accept it, move back to address phase
                     next_state = ADDR;
                 end
             end
         endcase
     end
 
-    // generate grant and rvalid signals based on the current state of the FSM
+    assign obi_agnt_o = (state == ADDR); // Grant access to the bus during address phase
+    assign obi_rvalid_o = (state == RESP); // Grant access to the bus during response phase
+
+    // END: OBI wrapper
+
+    // BEGIN: OBI write interface
     
-    // Potential bug here
-    // assign local_gnt = (obi_addr_i == `UART_TX_OFF) ? rx_empty : 1'b1; 
-    assign obi_gnt_o = rx_empty & !(state == RESP); // when you are in the response phase, you should not accept new requests, so gnt is low. In other states, gnt is high when there is a request
-    /*
-    always_comb begin
-        if(state == ADDR) begin
-            if (obi_addr_i[6:0] == `UART_TX_OFF) begin
-                obi_gnt_o = rx_empty; // only grant if the tx buffer is not empty and there is a request
-            end else if (obi_addr_i[6:0] == `UART_CONF_OFF || obi_addr_i[6:0] == `UART_SPEED_OFF) begin
-                obi_gnt_o = 1; // grant for configuration and speed registers without checking the buffer status
-            end else begin
-                obi_gnt_o = 1'b0; // do not grant for invalid addresses
-            end
-        end else begin
-            obi_gnt_o = 1'b0; // do not grant in response phase
-        end
-    end
-    */
-    assign obi_rvalid_o = 1'b1 & (state == RESP); // rvalid is high when you are in the response phase and there is no error
-    
-    
-    // Latching address and write data at the end of address phase to use in response phase
-    logic [OBI_ADDR_WIDTH-1:0] latched_addr;
-    logic [OBI_DATA_WIDTH-1:0] latched_wdata;
-    logic latched_we;
+    assign wr_en[0] = state == RESP & obi_awe_i & (obi_aaddr_i[6:0] == UartConfRegOffset); // Needs to ensure write request is valid and handshake occured in address phase
+    assign wr_en[1] = state == RESP & obi_awe_i & (obi_aaddr_i[6:0] == UartSpeedRegOffset); // Write enable for compare low register
+    assign wr_en[2] = state == RESP & obi_awe_i & (obi_aaddr_i[6:0] == UartTxRegOffset); // Write enable for compare high register
 
-    always_ff @(posedge obi_clk_i) begin
-        if (!obi_rstn_i) begin
-            latched_addr <= 0;
-            latched_wdata <= 0;
-            latched_we <= 0;
-        end else begin
-            if (latch_addr) begin
-                latched_addr <= obi_addr_i;
-                latched_wdata <= obi_wdata_i;
-                latched_we <= obi_we_i;
-            end 
-        end
-    end 
+    assign write_data_mask = {{8{obi_abe_i[3]}},{8{obi_abe_i[2]}},{8{obi_abe_i[1]}},{8{obi_abe_i[0]}}}; 
 
 
-
-
-    // OBI interface logic
-    // Write interface
-    logic [2:0] wr_en;
-    assign wr_en[0] = state == RESP & latched_we & (latched_addr[6:0] == `UART_CONF_OFF); // Needs to ensure write request is valid and handshake occured in address phase
-    assign wr_en[1] = state == RESP & latched_we & (latched_addr[6:0] == `UART_SPEED_OFF); // Needs to ensure write request is valid and handshake occured in address phase
-    assign wr_en[2] = state == RESP & latched_we & (latched_addr[6:0] == `UART_TX_OFF); // Needs to ensure write request is valid and handshake occured in address phase
-    
-    logic tx_start_reg; // register to hold the tx_start signal for the UART FSM, since the tx_start signal needs to be held until the data is transmitted, we need a register for it
-    // reg data 0x0
-    always_ff @(posedge obi_clk_i) begin
-        if (!obi_rstn_i) begin
-            tx_start_reg <= 0;
-        end else begin
-            if (wr_en[0]) begin
-                tx_start_reg <= latched_wdata[0];
-            end
-        end
-    end
-
-    // reg data 0x4
-    always_ff @(posedge obi_clk_i) begin
-        if (!obi_rstn_i) begin
-            limit_reg <= 0;
-        end else begin
-            if (wr_en[1]) begin
-                limit_reg <= latched_wdata[15:0];
-            end
-        end
-    end
-
-    // reg data 0x8 
-    // interface circuit is register by itself 
-    interface_circuit interface_circuit_inst (
-        .clock(obi_clk_i),
-        .reset(!obi_rstn_i),
-        .r_input(latched_wdata[7:0]),
-        .write_req(wr_en[2]),
-        .read_req(tx_done),
-        .rx_empty(rx_empty),
-        .r_out(data_out)
+    register  #(
+        .DTYPE(logic [DATA_WIDTH-1:0]),
+        .RESET_VALUE('0)     
+    ) timer_conf_reg
+        (
+        .clk(clk_i),
+        .rstn(rstn_i),
+        .ce(wr_en[0]),
+        .in(obi_awdata_i & write_data_mask),
+        .out(uart_conf_reg)
     );
 
 
-    // read interface
-    logic rd_en;
-    assign rd_en = state == RESP & !latched_we; // read from the GPIO switch register when there is a valid read request and the address is correct
+    register  #(
+        .DTYPE(logic [DATA_WIDTH-1:0]),
+        .RESET_VALUE('0)     
+    ) compare_low_reg
+        (
+        .clk(clk_i),
+        .rstn(rstn_i),
+        .ce(wr_en[1]),
+        .in(obi_awdata_i & write_data_mask), // Apply byte-enable mask to the incoming data
+        .out(uart_speed_reg)
+    );
 
-    assign obi_rdata_o = 0; 
-    
-    
-    // APB Slave Error Response
-    // write fail, occurs when we write to an invalid address
-    logic write_fail;
-    assign write_fail = (wr_en && latched_addr[6:0] != `UART_CONF_OFF && latched_addr[6:0] != `UART_SPEED_OFF && latched_addr[6:0] != `UART_TX_OFF) ? 1'b1 : 1'b0;
+    interface_circuit #(
+        .DATA_WIDTH(DATA_WIDTH)
+    ) uart_tx_buffer (
+        .clock(clk_i),
+        .reset(~rstn_i),
+        .r_input(obi_awdata_i), 
+        .write_req(wr_en[2]),
+        .read_req(tx_done), 
+        .rx_empty(tx_empty), 
+        .r_out(uart_tx_reg) 
+    );
+    // END: OBI write interface
 
-    assign obi_err_o = 0; // error response for invalid address
+    // BEGIN: OBI read interface
+    assign rd_en = state == RESP & !obi_awe_i ; 
 
-    // custom logic for the UART peripheral
-    logic rx_empty;
-    logic [7:0] data_out;
-    logic [15:0] limit_reg;
+    assign uart_status_reg = {{31{1'b0}}, tx_empty}; // Indicate if the transmit buffer is empty
 
-    
-    logic tx_done;
-    logic start_uart;
+    always_comb begin 
+        obi_rdata_o = '0; // Default to zero
+        if(rd_en) begin
+            case(obi_aaddr_i[6:0])
+                UartConfRegOffset: obi_rdata_o = uart_conf_reg;
+                UartSpeedRegOffset: obi_rdata_o = uart_speed_reg;
+                UartTxRegOffset: obi_rdata_o = uart_tx_reg;
+                UartStatusRegOffset: obi_rdata_o = uart_status_reg;
+                default: obi_rdata_o = '0; // Default to zero for unmapped addresses
+            endcase
+        end 
+    end
 
-    assign start_uart = tx_start_reg & ~rx_empty;
+
+    // END: logic for OBI read interface
+
+    // UART logic
 
     transmitter_system transmitter_system_inst (
-        .clock(obi_clk_i),
-        .reset(!obi_rstn_i),
-        .tx_start(start_uart),
-        .limit(limit_reg),
-        .data_in(data_out),
-        .tx(tx),
+        .clock(clk_i),
+        .reset(~rstn_i),
+        .limit(uart_speed_reg[15:0]), // Use lower 16 bits of the speed register as the baud rate limit
+        .tx_start(uart_conf_reg[0] & !tx_empty), // Start transmission when there is data in the buffer
+        .data_in(uart_tx_reg[7:0]), // Use lower 8 bits of the tx register as the data to transmit
+        .tx(tx_o),
         .tx_done(tx_done)
     );
+
+    // error handling logic
+    always_comb begin 
+        obi_rerr_o = 1'b0; // Default to no error
+        if (state == RESP) begin // Only check for read errors during response phase for read transactions
+            case(obi_aaddr_i[6:0])
+                UartConfRegOffset, UartSpeedRegOffset, UartTxRegOffset, UartStatusRegOffset: obi_rerr_o = 1'b0; // Valid addresses
+                default: obi_rerr_o = 1'b1; // Invalid address
+            endcase
+        end
+    end
+
 endmodule
+
+// Instantiation template:
+// obi_uart #(
+//     .ADDR_WIDTH(32),
+//     .DATA_WIDTH(32)
+// ) obi_uart_v2_inst (
+//     .clk_i       (),
+//     .rstn_i      (),
+//     .obi_areq_i  (),
+//     .obi_agnt_o  (),
+//     .obi_aaddr_i (),
+//     .obi_awdata_i(),
+//     .obi_awe_i   (),
+//     .obi_abe_i   (),
+//     .obi_rvalid_o(),
+//     .obi_rready_i(),
+//     .obi_rdata_o (),
+//     .obi_rerr_o  (),
+//     .tx_o        ()
+// );
+
 
 
 module baud_rate_generator // General Purpose counter        

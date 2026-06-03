@@ -1,161 +1,218 @@
-`define TIMER_CONF_OFF 7'h00
-`define TIMER_COUNTL_OFF 7'h04
-`define TIMER_COUNTH_OFF 7'h08
-
-
 module obi_timer #(
-    parameter OBI_ADDR_WIDTH = 32,
-    parameter OBI_DATA_WIDTH = 32
-
+    parameter int unsigned ADDR_WIDTH = 32,
+    parameter int unsigned DATA_WIDTH = 32
 ) (
-    // OBI SLAVE INTERFACE
-    //***************************************
-    input logic obi_clk_i,
-    input logic obi_rstn_i,
+    input logic clk_i,
+    input logic rstn_i,
 
-    // ADDRESS CHANNEL
-    input logic                         obi_req_i,
-    output  logic                       obi_gnt_o,
-    input logic [OBI_ADDR_WIDTH-1:0]    obi_addr_i,
-    input logic                         obi_we_i,
-    input logic [OBI_DATA_WIDTH-1:0]    obi_wdata_i,
-    input logic [               3:0]    obi_be_i,
+    input   logic                     obi_areq_i,
+    output  logic                     obi_agnt_o,
+    input   logic [ADDR_WIDTH-1:0]    obi_aaddr_i,
+    input   logic [DATA_WIDTH-1:0]    obi_awdata_i,
 
-    // RESPONSE CHANNEL
-    input logic      obi_rready_i,
-    output logic    obi_rvalid_o,
-    output logic    [OBI_DATA_WIDTH-1:0] obi_rdata_o,
-    output logic                       obi_err_o
+    input   logic                     obi_awe_i,
+    input   logic [DATA_WIDTH/8-1:0]  obi_abe_i,
 
+    output  logic                     obi_rvalid_o,
+    input   logic                     obi_rready_i,
+    output  logic [DATA_WIDTH-1:0]    obi_rdata_o,
+    output  logic                     obi_rerr_o,
+
+    // Output complete
+    output  logic                     overflow_o
 );
     
-    logic latch_addr; // control signals to latch address and response data at the end of address and response phases respectively
+    localparam int unsigned mTimerConfRegOffset = 0;
+    localparam int unsigned mTimerLow32RegOffset = 4; 
+    localparam int unsigned mTimerHigh32RegOffset = 8;
+    localparam int unsigned mTimerCMPLow32RegOffset = 12; 
+    localparam int unsigned mTimerCMPHigh32RegOffset = 16;
 
-    // slave FSM states
+    logic [DATA_WIDTH-1:0] counter_low;
+    logic [DATA_WIDTH-1:0] counter_high;
+    logic [DATA_WIDTH-1:0] compare_low;
+    logic [DATA_WIDTH-1:0] compare_high;
+    logic [DATA_WIDTH-1:0] timer_conf;
+    logic [63:0] cnt_reg; 
+
+    // OBI wrapper signals
     typedef enum logic {
         ADDR,
         RESP
     } state_t;
     state_t state, next_state;
 
-    always_ff @(posedge obi_clk_i) begin
-        if (!obi_rstn_i) begin
-            state <= ADDR;
-        end else begin
-            state <= next_state;
-        end
-    end
+    logic obi_a_fire;
+    logic obi_r_fire;
+    logic capture;
 
+
+    // Write interface signals
+    logic wr_en[2:0]; 
+    logic [DATA_WIDTH-1:0] write_data_mask;
+
+
+    // Read interface signals
+    logic rd_en;
+
+
+    // BEGIN: OBI wrapper
+    register  #(
+        .DTYPE(state_t),
+        .RESET_VALUE(ADDR)     
+    ) obi_fsm_state_reg
+        (
+        .clk(clk_i),
+        .rstn(rstn_i),
+        .ce(1'b1), // Always enable to capture the input state
+        .in(next_state),
+        .out(state)
+    );
+
+    assign obi_a_fire = obi_areq_i && obi_agnt_o;
+    assign obi_r_fire = obi_rready_i && obi_rvalid_o;
+
+    // State transition logic
     always_comb begin : OBI_SLAVE_next_state
         next_state = state;
-        latch_addr = 1'b0; // default value for latch_addr
         case (state)
             ADDR: begin
-                if (obi_gnt_o & obi_req_i) begin
+                if (obi_a_fire) begin // handshake for address phase, when there is a valid request and the slave is granted access to the bus, move to response phase
                     next_state = RESP;
-                    latch_addr = 1'b1; // latch address at the end of address phase
                 end
             end
             RESP: begin
-                if (obi_rvalid_o & obi_rready_i) begin
+                if (obi_r_fire) begin // handshake for response phase, when there is a valid response and the master is ready to accept it, move back to address phase
                     next_state = ADDR;
                 end
             end
         endcase
     end
 
-    // generate grant and rvalid signals based on the current state of the FSM
+    assign obi_agnt_o = (state == ADDR); // Grant access to the bus during address phase
+    assign obi_rvalid_o = (state == RESP); // Grant access to the bus during response phase
+
+    // END: OBI wrapper
+
+    // BEGIN: OBI write interface
     
-    assign obi_gnt_o = 1'b1 & !(state == RESP); // when you are in the response phase, you should not accept new requests, so gnt is low. In other states, gnt is high when there is a request
-    assign obi_rvalid_o = 1'b1 & (state == RESP); // rvalid is high when you are in the response phase and there is no error
-    
-    
-    // OBI Write interface 
-    // Latching address and write data at the end of address phase to use in response phase
+    assign wr_en[0] = state == RESP & obi_awe_i & (obi_aaddr_i[6:0] == mTimerConfRegOffset); // Needs to ensure write request is valid and handshake occured in address phase
+    assign wr_en[1] = state == RESP & obi_awe_i & (obi_aaddr_i[6:0] == mTimerCMPLow32RegOffset); // Write enable for compare low register
+    assign wr_en[2] = state == RESP & obi_awe_i & (obi_aaddr_i[6:0] == mTimerCMPHigh32RegOffset); // Write enable for compare high register
 
-    logic [OBI_ADDR_WIDTH-1:0] latched_addr;
-    logic [OBI_DATA_WIDTH-1:0] latched_wdata;
-    logic latched_we;
-
-    always_ff @(posedge obi_clk_i) begin
-        if (!obi_rstn_i) begin
-            latched_addr <= 0;
-            latched_wdata <= 0;
-            latched_we <= 0;
-        end else begin
-            if (latch_addr) begin
-                latched_addr <= obi_addr_i;
-                latched_wdata <= obi_wdata_i;
-                latched_we <= obi_we_i;
-            end 
-        end
-    end 
+    assign write_data_mask = {{8{obi_abe_i[3]}},{8{obi_abe_i[2]}},{8{obi_abe_i[1]}},{8{obi_abe_i[0]}}}; 
 
 
+    register  #(
+        .DTYPE(logic [DATA_WIDTH-1:0]),
+        .RESET_VALUE('0)     
+    ) timer_conf_reg
+        (
+        .clk(clk_i),
+        .rstn(rstn_i),
+        .ce(wr_en[0]),
+        .in(obi_awdata_i[DATA_WIDTH-1:0] & write_data_mask[DATA_WIDTH-1:0]),
+        .out(timer_conf)
+    );
 
-    logic [31:0] timer_config;
-    logic wr_en;
-    assign wr_en = state == RESP & latched_we & (latched_addr[6:0] == `TIMER_CONF_OFF); // Needs to ensure write request is valid and handshake occured in address phase
 
-  
-    // reg data 0x0
-    always_ff @(posedge obi_clk_i) begin
-        if (!obi_rstn_i) begin
-            timer_config <= 0;
-        end else begin
-            if (wr_en) begin
-                timer_config <= latched_wdata;
-            end
-        end
+    register  #(
+        .DTYPE(logic [DATA_WIDTH-1:0]),
+        .RESET_VALUE('0)     
+    ) compare_low_reg
+        (
+        .clk(clk_i),
+        .rstn(rstn_i),
+        .ce(wr_en[1]),
+        .in(obi_awdata_i & write_data_mask), // Apply byte-enable mask to the incoming data
+        .out(compare_low)
+    );
+
+    register  #(
+        .DTYPE(logic [DATA_WIDTH-1:0]),
+        .RESET_VALUE('0)     
+    ) compare_high_reg
+        (
+        .clk(clk_i),
+        .rstn(rstn_i),
+        .ce(wr_en[2]),
+        .in(obi_awdata_i & write_data_mask), // Apply byte-enable mask to the incoming data
+        .out(compare_high)
+    );
+    // END: OBI write interface
+
+    // BEGIN: OBI read interface
+    assign rd_en = state == RESP & !obi_awe_i ; 
+
+    always_comb begin 
+        obi_rdata_o = '0; // Default to zero
+        if(rd_en) begin
+            case(obi_aaddr_i[6:0])
+                mTimerConfRegOffset: obi_rdata_o =  timer_conf; // Zero-extend timer config register
+                mTimerCMPLow32RegOffset: obi_rdata_o = compare_low; // Zero-extend compare low register
+                mTimerCMPHigh32RegOffset: obi_rdata_o =  compare_high; // Zero-extend compare high register
+                mTimerLow32RegOffset: obi_rdata_o =  counter_low; // Zero-extend counter low register
+                mTimerHigh32RegOffset: obi_rdata_o =  counter_high; // Zero-extend counter high register
+                default: obi_rdata_o = '0; // Default to zero for unmapped addresses
+            endcase
+        end 
     end
 
-    // OBI read interface
-    logic rd_en[1:0];
-    assign rd_en[0] = state == RESP & !latched_we & (latched_addr[6:0] == `TIMER_COUNTL_OFF); // read from the TIMER_COUNTL register when there is a valid read request and the address is correct
-    assign rd_en[1] = state == RESP & !latched_we & (latched_addr[6:0] == `TIMER_COUNTH_OFF); // read from the TIMER_COUNTH register when there is a valid read request and the address is correct  
-    
-    // forwarding response data
-    logic [OBI_DATA_WIDTH-1:0] latched_rdata;
-    always_comb begin
-        if(rd_en[0]) begin
-            obi_rdata_o = timer_count[31:0];
-        end else if (rd_en[1]) begin
-            obi_rdata_o = timer_count[63:32];
-        end else begin
-            obi_rdata_o = 32'b0; // for invalid read requests, return 0
+
+    // END: logic for OBI read interface
+
+    // Counter logic
+
+    cntr #(
+        .WORD_WIDTH(64),
+        .RESET_VALUE(0)
+    ) counter (
+        .clk(clk_i),
+        .rstn(rstn_i & ~timer_conf[1]), // Reset counter 
+        .ce(timer_conf[0]), // Always enable the counter to count every cycle
+        .count(cnt_reg)
+    );
+
+    assign counter_low = cnt_reg[DATA_WIDTH-1:0];
+    assign counter_high = cnt_reg[63:DATA_WIDTH];
+
+    assign overflow_o = cnt_reg >= {compare_high, compare_low};
+
+
+    // error handling logic
+    always_comb begin 
+        obi_rerr_o = 1'b0; // Default to no error
+        if (state == RESP) begin // Only check for read errors during response phase for read transactions
+            case(obi_aaddr_i[6:0])
+                mTimerConfRegOffset, mTimerCMPLow32RegOffset, mTimerCMPHigh32RegOffset, mTimerLow32RegOffset, mTimerHigh32RegOffset: obi_rerr_o = 1'b0; // Valid addresses
+                default: obi_rerr_o = 1'b1; // Invalid address
+            endcase
         end
     end
-
-
-    // Timer logic
-    logic [63:0] timer_count;
-    logic timer_start, timer_reset;
-
-    assign timer_start = timer_config[0];
-    assign timer_reset = timer_config[1]; 
-
-    always_ff @(posedge obi_clk_i) begin
-        if (!obi_rstn_i) begin
-            timer_count <= 0;
-        end else begin
-            if(timer_start) begin
-                if(timer_reset) begin
-                    timer_count <= 0;
-                end else begin
-                    timer_count <= timer_count + 1;
-                end
-            end
-        end
-    end
-  
-    
-    logic invalid_read;
-    assign invalid_read = !latched_we & (obi_gnt_o & obi_req_i) & !( (latched_addr[6:0] == `TIMER_COUNTL_OFF) | (latched_addr[6:0] == `TIMER_COUNTH_OFF) ); // invalid read when there is a read request but the address is not correct
-
-    logic invalid_write;
-    assign invalid_write = latched_we & (obi_gnt_o & obi_req_i) & !(latched_addr[6:0] == `TIMER_CONF_OFF);
-    assign obi_err_o = invalid_write | invalid_read; // error response for invalid address
 
 endmodule
 
 
+// -----------------------------------------------------------------------------
+// Instantiation template: obi_timer
+// -----------------------------------------------------------------------------
+/*
+obi_timer #(
+    .ADDR_WIDTH(32),
+    .DATA_WIDTH(32)
+) i_obi_timer (
+    .clk_i       (),
+    .rstn_i      (),
+    .obi_areq_i  (),
+    .obi_agnt_o  (),
+    .obi_aaddr_i (),
+    .obi_awdata_i(),
+    .obi_awe_i   (),
+    .obi_abe_i   (),
+    .obi_rvalid_o(),
+    .obi_rready_i(obi_rready_i),
+    .obi_rdata_o (obi_rdata_o),
+    .obi_rerr_o  (obi_rerr_o),
+    .overflow_o  (overflow_o)
+);
+*/
