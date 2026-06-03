@@ -83,6 +83,8 @@ module arbiter #(
         idx                     = prn[IdxWidth-1:0];
         prn_miss                = ~valid_vector_i[idx];     // If request is not active, set prn_miss to high and vice versa 
         skip_covered_valid_v    = ((valid_vector_i & skip_mask) == valid_vector_i);
+        valid                   = '0;
+        skip                    = '0;
         if (ready_i) begin          // TODO could be a redundant condition
             for (int i = 0; i<NUM_PORTS; ++i) begin // Progress the round
                 if (int'(idx) >= NUM_PORTS) begin
