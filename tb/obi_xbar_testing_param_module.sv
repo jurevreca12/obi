@@ -1,14 +1,13 @@
-import obi_pkg::obi_a;
-import obi_pkg::obi_r;
+//`include "../rtl/obi_typedef.svh"
 
-module obi_xbar_testing_param_module #(
+module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this module
     
 )
 (
     input   logic clk_i,
     input   logic rstn_i,
 
-    // IFU signals
+// IFU signals
     // request channel
     input   logic [ADDR_WIDTH-1:0]  ifu_req_addr_i,
     input   logic [DATA_WIDTH-1:0]  ifu_req_data_i,
@@ -60,61 +59,6 @@ module obi_xbar_testing_param_module #(
     output  logic [ID_WIDTH-1:0]    m2_rsp_id_o,
     input   logic                   m2_rsp_ready_i,
 
-/*
-// OBI RAM A port signals
-    // request channel
-    output   logic [ADDR_WIDTH-1:0]  obi_00_aaddr_o,
-    output   logic [DATA_WIDTH-1:0]  obi_00_awdata_o,
-    output   logic [NBytes-1:0]      obi_00_abe_o,
-    output   logic                   obi_00_awe_o,
-    output   logic                   obi_00_areq_o,
-    output   logic [ID_WIDTH-1:0]    obi_00_aid_o,
-    output   logic [MID_WIDTH-1:0]   obi_00_mid_o,               
-    input    logic                   obi_00_agnt_i,
-
-    // response channel
-    input  logic [ADDR_WIDTH-1:0]  obi_00_rdata_i,
-    input  logic                   obi_00_rerr_i,
-    input  logic [ID_WIDTH-1:0]    obi_00_rid_i,
-    input  logic                   obi_00_rvalid_i,
-    output logic                   obi_00_rready_o,
-
-// OBI RAM B port signals
-    // request channel
-    output   logic [ADDR_WIDTH-1:0]  obi_10_aaddr_o,
-    output   logic [DATA_WIDTH-1:0]  obi_10_awdata_o,
-    output   logic [NBytes-1:0]      obi_10_abe_o,
-    output   logic                   obi_10_awe_o,
-    output   logic                   obi_10_areq_o,
-    output   logic [ID_WIDTH-1:0]    obi_10_aid_o,
-    output   logic [MID_WIDTH-1:0]   obi_10_mid_o,
-    input    logic                   obi_10_agnt_i,
-
-    // response channel
-    input  logic [ADDR_WIDTH-1:0]  obi_10_rdata_i,
-    input  logic                   obi_10_rerr_i,
-    input  logic [ID_WIDTH-1:0]    obi_10_rid_i,
-    input  logic                   obi_10_rvalid_i,
-    output logic                   obi_10_rready_o,
-
-// OBI UART signals
-    // request channel
-    output   logic [ADDR_WIDTH-1:0]  obi_11_aaddr_o,
-    output   logic [DATA_WIDTH-1:0]  obi_11_awdata_o,
-    output   logic [NBytes-1:0]      obi_11_abe_o,
-    output   logic                   obi_11_awe_o,
-    output   logic                   obi_11_areq_o,
-    output   logic [ID_WIDTH-1:0]    obi_11_aid_o,
-    output   logic [MID_WIDTH-1:0]   obi_11_mid_o,
-    input    logic                   obi_11_agnt_i,
-
-    // response channel
-    input  logic [ADDR_WIDTH-1:0]  obi_11_rdata_i,
-    input  logic                   obi_11_rerr_i,
-    input  logic [ID_WIDTH-1:0]    obi_11_rid_i,
-    input  logic                   obi_11_rvalid_i,
-    output logic                   obi_11_rready_o
-    */
 
 // S0
     output logic [ADDR_WIDTH-1:0]           s0_obi_aadr_o,
@@ -122,12 +66,14 @@ module obi_xbar_testing_param_module #(
     output logic [NBytes-1:0]               s0_obi_abe_o,
     output logic [DATA_WIDTH-1:0]           s0_obi_awdata_o,
     output logic                            s0_obi_areq_o,
+    output obi_sub_id_t                     s0_obi_aid_o,
     input  logic                            s0_obi_agnt_i,
 
     output logic                            s0_obi_rready_o,
     input  logic                            s0_obi_rvalid_i,
     input  logic [DATA_WIDTH-1:0]           s0_obi_rdata_i,
     input  logic                            s0_obi_rerr_i,
+    input  obi_sub_id_t                     s0_obi_rid_i,
 
 // S1
     output logic [ADDR_WIDTH-1:0]           s1_obi_aadr_o,
@@ -135,37 +81,84 @@ module obi_xbar_testing_param_module #(
     output logic [NBytes-1:0]               s1_obi_abe_o,
     output logic [DATA_WIDTH-1:0]           s1_obi_awdata_o,
     output logic                            s1_obi_areq_o,
+    output obi_sub_id_t                     s1_obi_aid_o,
     input  logic                            s1_obi_agnt_i,
 
     output logic                            s1_obi_rready_o,
     input  logic                            s1_obi_rvalid_i,
     input  logic [DATA_WIDTH-1:0]           s1_obi_rdata_i,
-    input  logic                            s1_obi_rerr_i
+    input  logic                            s1_obi_rerr_i,
+    input  obi_sub_id_t                     s1_obi_rid_i
 
 );
-
+    
     localparam int ADDR_WIDTH = 32;
     localparam int DATA_WIDTH = 32;
     localparam int MANAGERS = 4;
     localparam int MID_WIDTH = $clog2(MANAGERS);
     localparam int SUBORDINATES = 2;
-    localparam int FIFO_DEPTH = 1024;
-    localparam int ID_WIDTH = $clog2(FIFO_DEPTH * SUBORDINATES)+1;
+    localparam int SR_FIFO_DEPTH = 1024;
+    localparam bit USE_ID_FOR_ROUTING = '0;
+    localparam int MR_FIFO_DEPTH = 1024;
+    //localparam int ID_WIDTH = $clog2(SR_FIFO_DEPTH * SUBORDINATES)+1;
+    localparam int ID_WIDTH = 10;
     localparam int NBytes = DATA_WIDTH / 8;
-    localparam bit [SUBORDINATES-1:0] [MANAGERS-1:0] Connectivity = {{4'b0011}, {4'b0111}};
-   
-    obi_a_if #(
-        ADDR_WIDTH,
-        DATA_WIDTH,
-        NBytes,
-        MANAGERS,
-        ID_WIDTH,
-        SUBORDINATES
-    ) obi_a_chans_mgr  [MANAGERS] ();
+    //localparam bit [SUBORDINATES-1:0] [MANAGERS-1:0] Connectivity = {{4'b0111}, {4'b0011}};
+    
 
+    //localparam obi_pkg::xbar_cfg_t xbar_cfg = obi_pkg::xbar_id_routing_cfg(MANAGERS, SUBORDINATES, ADDR_WIDTH, DATA_WIDTH, ID_WIDTH);
+    localparam obi_pkg::xbar_cfg_t xbar_cfg = obi_pkg::xbar_default_cfg(MANAGERS, SUBORDINATES, ADDR_WIDTH, DATA_WIDTH, ID_WIDTH);
+
+    localparam obi_pkg::obi_if_type_e obi_manager = MANAGER;
+
+    localparam obi_pkg::obi_if_type_e obi_subordinate = SUBORDINATE;
+
+
+    //localparam obi_pkg::obi_cfg obi_cfg = obi_pkg::obi_default_cfg(ADDR_WIDTH, DATA_WIDTH, ID_WIDTH);
+
+    typedef struct packed {
+        logic [xbar_cfg.IdWidth-1:0]              obi_aid;
+        logic [$clog2(xbar_cfg.Managers)-1:0]    obi_mid;
+    } obi_sub_id;
+
+    localparam type obi_sub_id_t = obi_sub_id;
+
+    /*
+    `TYPEDEF_OBI_A_CHAN(obi_a, ADDR_WIDTH, DATA_WIDTH, ID_WIDTH, MANAGERS);
+
+    `TYPEDEF_OBI_R_CHAN(obi_r, DATA_WIDTH, ID_WIDTH);
+    */
+
+    `TYPEDEF_OBI_CHANS(mgr_obi_a, mgr_obi_r, obi_manager, xbar_cfg);
+
+    `TYPEDEF_OBI_CHANS(sub_obi_a, sub_obi_r, obi_subordinate, xbar_cfg);
+
+
+    `TYPEDEF_XBAR_ADDR_MAP(addr_map, ADDR_WIDTH, SUBORDINATES);
+
+    `TYPEDEF_XBAR_CONNECTIVITY(Connectivity, SUBORDINATES, MANAGERS, {{4'b0111}, {4'b0011}});
+
+    //`TYPEDEF_XBAR_CONNECTIVITY(Connectivity, SUBORDINATES, MANAGERS, {{2'b00}, {2'b11}});
+
+    //assign Connectivity = {{4'b0111}, {4'b0011}};
+
+    //localparam int NoMAPS  = 2;
+    localparam int SUB_WIDTH = $clog2(xbar_cfg.Subordinates);
+    addr_map address_map [xbar_cfg.NoMaps];
+    assign address_map[0] = '{idx: SUB_WIDTH'('d0),base: 32'h0000_0000,mask: 32'h4000_0000};
+    assign address_map[1] = '{idx: SUB_WIDTH'('d1),base: 32'h4000_0000,mask: 32'h4000_0000};
+
+
+
+
+
+
+    mgr_obi_a obi_a_chans_mgr [MANAGERS];
+    logic obi_agnt_signals_mgr [MANAGERS];
+    
     // IFU
     assign obi_a_chans_mgr[0].obi_areq = ifu_req_valid_i;
-    assign ifu_req_ready_o = obi_a_chans_mgr[0].obi_agnt;
+    assign ifu_req_ready_o = obi_agnt_signals_mgr[0];
     assign obi_a_chans_mgr[0].obi_aadr = ifu_req_addr_i;
     assign obi_a_chans_mgr[0].obi_awe =  ifu_req_write_i;
     assign obi_a_chans_mgr[0].obi_abe = ifu_req_strobe_i;
@@ -174,7 +167,7 @@ module obi_xbar_testing_param_module #(
 
     // LSU
     assign obi_a_chans_mgr[1].obi_areq = lsu_req_valid_i;
-    assign lsu_req_ready_o = obi_a_chans_mgr[1].obi_agnt;
+    assign lsu_req_ready_o = obi_agnt_signals_mgr[1];
     assign obi_a_chans_mgr[1].obi_aadr = lsu_req_addr_i;
     assign obi_a_chans_mgr[1].obi_awe =  lsu_req_write_i;
     assign obi_a_chans_mgr[1].obi_abe = lsu_req_strobe_i;
@@ -182,112 +175,108 @@ module obi_xbar_testing_param_module #(
     assign obi_a_chans_mgr[1].obi_aid = lsu_req_id_i;
 
     // M2
+    
     assign obi_a_chans_mgr[2].obi_areq = m2_req_valid_i;
-    assign m2_req_ready_o = obi_a_chans_mgr[2].obi_agnt;
+    assign m2_req_ready_o = obi_agnt_signals_mgr[2];
     assign obi_a_chans_mgr[2].obi_aadr = m2_req_addr_i;
     assign obi_a_chans_mgr[2].obi_awe =  m2_req_write_i;
     assign obi_a_chans_mgr[2].obi_abe = m2_req_strobe_i;
     assign obi_a_chans_mgr[2].obi_awdata = m2_req_data_i;
     assign obi_a_chans_mgr[2].obi_aid = m2_req_id_i;
-
-
-
-    obi_r_if #(
-        ADDR_WIDTH,
-        DATA_WIDTH,
-        NBytes,
-        MANAGERS,
-        ID_WIDTH,
-        SUBORDINATES
-    ) obi_r_chans_mgr [MANAGERS] ();
-        
+       
+    mgr_obi_r obi_r_chans_mgr [MANAGERS];
+    logic obi_rready_signals_mgr [MANAGERS];
 
     // IFU
     assign ifu_rsp_valid_o = obi_r_chans_mgr[0].obi_rvalid;
-    assign obi_r_chans_mgr[0].obi_rready = ifu_rsp_ready_i;
+    assign obi_rready_signals_mgr[0] = ifu_rsp_ready_i;
     assign ifu_rsp_data_o = obi_r_chans_mgr[0].obi_rdata;
     assign ifu_rsp_error_o = obi_r_chans_mgr[0].obi_rerr;
     assign ifu_rsp_id_o = obi_r_chans_mgr[0].obi_rid;
 
     // LSU
     assign lsu_rsp_valid_o = obi_r_chans_mgr[1].obi_rvalid;
-    assign obi_r_chans_mgr[1].obi_rready = lsu_rsp_ready_i;
+    assign obi_rready_signals_mgr[1] = lsu_rsp_ready_i;
     assign lsu_rsp_data_o = obi_r_chans_mgr[1].obi_rdata;
     assign lsu_rsp_error_o = obi_r_chans_mgr[1].obi_rerr;
     assign lsu_rsp_id_o = obi_r_chans_mgr[1].obi_rid;
 
     // M2
+    
     assign m2_rsp_valid_o = obi_r_chans_mgr[2].obi_rvalid;
-    assign obi_r_chans_mgr[2].obi_rready = m2_rsp_ready_i;
+    assign obi_rready_signals_mgr[2] = m2_rsp_ready_i;
     assign m2_rsp_data_o = obi_r_chans_mgr[2].obi_rdata;
     assign m2_rsp_error_o = obi_r_chans_mgr[2].obi_rerr;
     assign m2_rsp_id_o = obi_r_chans_mgr[2].obi_rid;
+    
 
-    obi_a_if #(
-        ADDR_WIDTH,
-        DATA_WIDTH,
-        NBytes,
-        MANAGERS,
-        ID_WIDTH,
-        SUBORDINATES
-    ) obi_a_chans_sub [SUBORDINATES]();
+    sub_obi_a obi_a_chans_sub [SUBORDINATES];
+    logic obi_agnt_signals_sub [SUBORDINATES];
 
     // S0
-    assign obi_a_chans_sub[0].obi_agnt = s0_obi_agnt_i;
+    assign obi_agnt_signals_sub[0] = s0_obi_agnt_i;
     assign s0_obi_areq_o = obi_a_chans_sub[0].obi_areq;
     assign s0_obi_aadr_o = obi_a_chans_sub[0].obi_aadr;
     assign s0_obi_awe_o = obi_a_chans_sub[0].obi_awe;
     assign s0_obi_abe_o = obi_a_chans_sub[0].obi_abe;
     assign s0_obi_awdata_o = obi_a_chans_sub[0].obi_awdata;
+    assign s0_obi_aid_o = obi_a_chans_sub[0].obi_aid;
 
     // S1
-    assign obi_a_chans_sub[1].obi_agnt = s1_obi_agnt_i;
+    assign obi_agnt_signals_sub[1] = s1_obi_agnt_i;
     assign s1_obi_areq_o = obi_a_chans_sub[1].obi_areq;
     assign s1_obi_aadr_o = obi_a_chans_sub[1].obi_aadr;
     assign s1_obi_awe_o = obi_a_chans_sub[1].obi_awe;
     assign s1_obi_abe_o = obi_a_chans_sub[1].obi_abe;
     assign s1_obi_awdata_o = obi_a_chans_sub[1].obi_awdata;
+    assign s1_obi_aid_o = obi_a_chans_sub[1].obi_aid;
 
-    obi_r_if #(
-        ADDR_WIDTH,
-        DATA_WIDTH,
-        NBytes,
-        MANAGERS,
-        ID_WIDTH,
-        SUBORDINATES
-    ) obi_r_chans_sub [SUBORDINATES]();
+
+    sub_obi_r obi_r_chans_sub [SUBORDINATES];
+    logic obi_rready_signals_sub [SUBORDINATES];
 
     // S0
-    assign s0_obi_rready_o = obi_r_chans_sub[0].obi_rready;
+    assign s0_obi_rready_o = obi_rready_signals_sub[0];
     assign obi_r_chans_sub[0].obi_rvalid = s0_obi_rvalid_i;
     assign obi_r_chans_sub[0].obi_rdata = s0_obi_rdata_i;
     assign obi_r_chans_sub[0].obi_rerr = s0_obi_rerr_i;
+    assign obi_r_chans_sub[0].obi_rid = s0_obi_rid_i;
 
     // S1
-    assign s1_obi_rready_o = obi_r_chans_sub[1].obi_rready;
+    assign s1_obi_rready_o = obi_rready_signals_sub[1];
     assign obi_r_chans_sub[1].obi_rvalid = s1_obi_rvalid_i;
     assign obi_r_chans_sub[1].obi_rdata = s1_obi_rdata_i;
     assign obi_r_chans_sub[1].obi_rerr = s1_obi_rerr_i;
+    assign obi_r_chans_sub[1].obi_rid = s1_obi_rid_i;
 
+    obi_xbar #(
+        .XbarCfg(xbar_cfg),
+        //.ObiCfg(obi_cfg),
 
+        //.obi_a_t(obi_a),
+        //.obi_r_t(obi_r),
+        .mgr_obi_a_t(mgr_obi_a),
+        .mgr_obi_r_t(mgr_obi_r),
+        .sub_obi_a_t(sub_obi_a),
+        .sub_obi_r_t(sub_obi_r),
+        .addr_map_t(addr_map),
 
-    
-    testing_xbar_param #(
-        32,
-        32,
-        MANAGERS,
-        SUBORDINATES,
-        FIFO_DEPTH,
-        ID_WIDTH
+        .CONNECTIVITY(Connectivity)
     ) xbar_param (
         .clk_i(clk_i),
         .rstn_i(rstn_i),
         
-        .obi_a_chans_mgr(obi_a_chans_mgr),
-        .obi_r_chans_mgr(obi_r_chans_mgr),
+        .mgr_obi_a_chans(obi_a_chans_mgr),
+        .mgr_obi_agnt_signals(obi_agnt_signals_mgr),
+        .mgr_obi_r_chans(obi_r_chans_mgr),
+        .mgr_obi_rready_signals(obi_rready_signals_mgr),
 
-        .obi_a_chans_sub(obi_a_chans_sub),
-        .obi_r_chans_sub(obi_r_chans_sub)
+        .sub_obi_a_chans(obi_a_chans_sub),
+        .sub_obi_agnt_signals(obi_agnt_signals_sub),
+        .sub_obi_r_chans(obi_r_chans_sub),
+        .sub_obi_rready_signals(obi_rready_signals_sub),
+
+        .addr_map_i(address_map)
 
     );
 

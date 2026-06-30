@@ -1,37 +1,94 @@
 package obi_pkg;
-    
-    parameter int ADDR_WIDTH = 32;
-    parameter int DATA_WIDTH = 32;
-    parameter int NBytes = DATA_WIDTH / 8;
-    parameter int MANAGERS = 4;
-    parameter int ID_WIDTH = 32;
-    parameter int SUBORDINATES = 2;
 
+// Xbar config
+    typedef struct packed {
+        int unsigned Managers;
+        int unsigned Subordinates;
+        int unsigned AddrWidth;
+        int unsigned DataWidth;
+        int unsigned IdWidth;
+        int unsigned MidWidth;
+        bit unsigned UseIdForRouting; // if UseIdForRouting = 1 => (IdWidth has to be >$clog2(SrFifoDepth*Subordinates))
+        bit unsigned UseSrFifo;
+        int unsigned MrFifoDepth;
+        int unsigned SrFifoDepth;
+        int unsigned NoMaps;
+        bit unsigned UseDefaultMap;
+        int unsigned DefaultMapIdx;
+    } xbar_cfg_t;
 
-    typedef struct packed{
-        logic                           obi_areq;
-        logic [ADDR_WIDTH-1:0]          obi_aadr;
-        logic                           obi_awe;
-        logic [NBytes-1:0]              obi_abe;
-        logic [DATA_WIDTH-1:0]          obi_awdata;
-        logic [ID_WIDTH-1:0]            obi_aid;
-        logic [$clog2(MANAGERS)-1:0]    obi_mid;
-    } obi_a;
+    function automatic xbar_cfg_t xbar_default_cfg(
+        int unsigned Managers,
+        int unsigned Subordinates,
+        int unsigned AddrWidth,
+        int unsigned DataWidth,
+        int unsigned IdWidth
+    );
+        xbar_default_cfg = '{
+            Managers: Managers,
+            Subordinates: Subordinates,
+            AddrWidth: AddrWidth,
+            DataWidth: DataWidth,
+            IdWidth: IdWidth,
+            MidWidth: int'($clog2(Managers)),
+            UseIdForRouting: '0,
+            UseSrFifo: '0,
+            MrFifoDepth: int'($pow(2,IdWidth)),
+            SrFifoDepth: '0,
+            NoMaps: Subordinates,
+            UseDefaultMap: '0,
+            DefaultMapIdx: 0
+        };
+    endfunction
 
+    function automatic xbar_cfg_t xbar_id_routing_cfg(
+        int unsigned Managers,
+        int unsigned Subordinates,
+        int unsigned AddrWidth,
+        int unsigned DataWidth,
+        int unsigned IdWidth
+    );
+        xbar_id_routing_cfg = '{
+            Managers: Managers,
+            Subordinates: Subordinates,
+            AddrWidth: AddrWidth,
+            DataWidth: DataWidth,
+            IdWidth: IdWidth,
+            MidWidth: int'($clog2(Managers)),
+            UseIdForRouting: '1,
+            UseSrFifo: '0,
+            MrFifoDepth: '0,
+            SrFifoDepth: '0,
+            NoMaps: Subordinates,
+            UseDefaultMap: '0,
+            DefaultMapIdx: 0
+        };
+    endfunction
 
-    typedef struct packed{
-        logic                    obi_rvalid;
-        logic [DATA_WIDTH-1:0]   obi_rdata;
-        logic                    obi_rerr;
-        logic [ID_WIDTH-1:0]     obi_rid;
-    } obi_r;
+    typedef enum  {
+        MANAGER,
+        SUBORDINATE
+    } obi_if_type_e;
 
-    typedef struct packed  {  
-        logic [$clog2(SUBORDINATES)-1:0]    idx;
-        logic [ADDR_WIDTH-1:0]              base;
-        logic [ADDR_WIDTH-1:0]              mask;
-    } addr_map;
+    function automatic xbar_cfg_t IfTypeXbarCfg(
+        xbar_cfg_t XbarCfg,
+        obi_if_type_e Type
+    );
+        IfTypeXbarCfg = XbarCfg;
+        if (Type == SUBORDINATE & ~IfTypeXbarCfg.UseSrFifo) begin
+            IfTypeXbarCfg.IdWidth = IfTypeXbarCfg.IdWidth + IfTypeXbarCfg.MidWidth;
+        end
+    endfunction;
 
+    function automatic xbar_cfg_t SubXbarCfg(
+        xbar_cfg_t XbarCfg,
+        bit unsigned UseSrFifo,
+        int unsigned SrFifoDepth
+    );
+        SubXbarCfg = XbarCfg;
+        SubXbarCfg.UseSrFifo = UseSrFifo;
+        SubXbarCfg.SrFifoDepth = SrFifoDepth;
+    endfunction;
 
 endpackage
 
