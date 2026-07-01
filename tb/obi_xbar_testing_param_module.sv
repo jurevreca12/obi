@@ -1,4 +1,4 @@
-//`include "../rtl/obi_typedef.svh"
+`include "obi_typedef.svh"
 
 module obi_xbar_testing_param_module import obi_pkg::*; #( // TODO rename this module
     
