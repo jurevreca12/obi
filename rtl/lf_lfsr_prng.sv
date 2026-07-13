@@ -42,15 +42,15 @@ module lf_lfsr_prng#(
       .DTYPE      (logic[LFSR_WIDTH-1:0]), 
       .RESET_VALUE(SEED)
     ) state_reg (
-      .clk(clk_i), .rstn(rstn), .ce(1'b1), .in(state),        .out(state_prev)
+      .clk(clk_i), .rstn(rstn_i), .ce(1'b1), .in(state),        .out(state_prev)
     );
     register hold_state_reg (
-      .clk(clk_i), .rstn(rstn), .ce(1'b1), .in(hold_state_i), .out(hold_state)
+      .clk(clk_i), .rstn(rstn_i), .ce(1'b1), .in(hold_state_i), .out(hold_state)
     );
     register #(
       .DTYPE(logic [PRN_WIDTH-1:0])
     ) prn_reg (
-      .clk(clk_i), .rstn(rstn), .ce(1'b1), .in(prn_o),        .out(prn_prev)
+      .clk(clk_i), .rstn(rstn_i), .ce(1'b1), .in(prn_o),        .out(prn_prev)
     );
 
 endmodule
