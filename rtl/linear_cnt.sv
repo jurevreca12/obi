@@ -11,7 +11,7 @@ module linear_cnt #(
     input   logic               cnt_next_i,
     output  logic [WIDTH-1:0]   cnt_value_o
 );
-    always_ff @(posedge clk_i) begin
+    always_ff @(posedge clk_i or negedge rstn_i) begin
         if (~rstn_i) begin
             cnt_value_o <= WIDTH'(RESET_VALUE); // Reset counter to the RESET_VALUE
         end else begin

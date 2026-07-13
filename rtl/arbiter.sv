@@ -57,13 +57,11 @@ module arbiter #(
         end
     end
 
-    always_ff @(posedge clk_i) begin
-        if (~rstn_i) begin
-            skip_mask <= '0;
-        end else if (prn_miss & granted_o) begin
-            skip_mask <= skip_mask_next;
-        end
-    end
+    register #(
+      .DTYPE(logic [NUM_PORTS-1:0]) 
+    ) skip_mask_reg (
+      .clk(clk_i), .rstn(rstn_i), .ce(prn_miss & granted_o), .in(skip_mask_next), .out(skip_mask)
+    );
 
     // Arbiter
     // This arbiter is based on PRN's being generated and granting requests based on their value, 

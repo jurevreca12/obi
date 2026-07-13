@@ -27,7 +27,7 @@ assign  empty_o = (rd_ptr == wr_ptr) && rd_last;    // Determine FIFO empty stat
 assign  r_data_o    = fifo_storage [rd_ptr];    // Assign read data to FIFO output
 
 // FIFO write
-always_ff @(posedge clk_i) begin
+always_ff @(posedge clk_i or negedge rstn_i) begin
     if (~rstn_i) begin
         wr_ptr <= '0;
     end else begin
@@ -40,7 +40,7 @@ always_ff @(posedge clk_i) begin
 end
 
 // FIFO read
-always_ff @(posedge clk_i ) begin
+always_ff @(posedge clk_i or negedge rstn_i) begin
     if (~rstn_i) begin
         rd_ptr <= '0;
     end else begin
@@ -53,7 +53,7 @@ end
 
 // FIFO last operation tracking
 // Used to determine whether the FIFO is empty or full
-always_ff @(posedge clk_i) begin
+always_ff @(posedge clk_i or negedge rstn_i) begin
     if (~rstn_i) begin
         rd_last <= 1'b1;
     end else begin

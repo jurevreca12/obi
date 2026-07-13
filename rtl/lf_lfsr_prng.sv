@@ -38,16 +38,20 @@ module lf_lfsr_prng#(
     end
 
     // Seed LFSR each cycle to generate a new prn
-    always_ff @(posedge clk_i) begin
-        if (~rstn_i) begin
-            state_prev <= SEED;  // On reset set LFSR state to SEED (period start)
-            hold_state <= '0;
-        end else begin
-            hold_state <= hold_state_i;
-            state_prev <= state;
-            prn_prev <= prn_o;
-        end
-    end
+    register #(
+      .DTYPE      (logic[LFSR_WIDTH-1:0]), 
+      .RESET_VALUE(SEED)
+    ) state_reg (
+      .clk(clk_i), .rstn(rstn), .ce(1'b1), .in(state),        .out(state_prev)
+    );
+    register hold_state_reg (
+      .clk(clk_i), .rstn(rstn), .ce(1'b1), .in(hold_state_i), .out(hold_state)
+    );
+    register #(
+      .DTYPE(logic [PRN_WIDTH-1:0])
+    ) prn_reg (
+      .clk(clk_i), .rstn(rstn), .ce(1'b1), .in(prn_o),        .out(prn_prev)
+    );
 
 endmodule
 
