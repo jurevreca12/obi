@@ -22,6 +22,13 @@ module arbiter #(
 
     logic   [PrnWidth-1:0]     prn; // The pseudo random number (PRN) generated
     logic                      lfsr_state_hold;
+    logic   [IdxWidth-1:0]  idx;
+    logic                   prn_miss;
+    logic                   valid;
+    logic                   skip;
+    logic   [NUM_PORTS-1:0] skip_mask;
+    logic   [NUM_PORTS-1:0] skip_mask_next;
+    logic                   skip_covered_valid_v;
     //assign  lfsr_state_hold =  (valid_vector_i[granted_idx_o] == '0 || ready_i == '0);
     assign  lfsr_state_hold =  (valid_vector_i == '0 || ready_i == '0);
      lf_lfsr_prng #(
@@ -43,9 +50,7 @@ module arbiter #(
     // based on the MSB value of the PRN, it grants the request to the first active requestor and its index is marked in the skip mask,
     // the skip mask is reset if it covers the active requests in the valid_vector_i
     // This ensures fairness when arbitering as it mitigates starvation of requestors in certain scenarios
-    logic   [NUM_PORTS-1:0] skip_mask;
-    logic   [NUM_PORTS-1:0] skip_mask_next;
-    logic                   skip_covered_valid_v;
+
 
     always_comb begin
         skip_mask_next = skip_mask;
@@ -69,10 +74,7 @@ module arbiter #(
     // resorts to a round robin (RR) way of choosing one of the active requests, it does so by starting 
     // the round from the index generated and progressing either left or right based on the MSB value of 
     // the PRN, it grants the request to the first active requestor and its index is marked in the skip mask
-    logic   [IdxWidth-1:0]  idx;
-    logic                   prn_miss;
-    logic                   valid;
-    logic                   skip;
+
 
     always_comb begin
         // Reset to defaults
