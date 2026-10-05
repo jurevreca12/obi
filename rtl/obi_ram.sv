@@ -80,6 +80,7 @@ module obi_ram #(
     .MEM_SIZE_WORDS (MEM_SIZE_WORDS)
   ) mem (
     .clk    (clk_i),
+    .rstn   (rstn_i),
     .strobe (act_req.strobe),
     .write  (act_req.write),
     .valid  (act_req_fire),
